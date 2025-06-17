@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Teacher Attendance Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+    th { background-color: #f2f2f2; }
+    #chartContainer { width: 100%; max-width: 600px; margin-top: 30px; }
+  </style>
+</head>
+<body>
+
+<h2>Teacher Attendance Dashboard</h2>
+
+<label for="datePicker">Select Date:</label>
+<input type="date" id="datePicker">
+
+<table>
+  <thead>
+    <tr><th>Name</th><th>Status</th></tr>
+  </thead>
+  <tbody id="attendanceTable"></tbody>
+</table>
+
+<div id="chartContainer">
+  <canvas id="attendanceChart"></canvas>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtbaEMPmljXmEfUU7k00obcIh4WVfDo3Y",
+    authDomain: "gdp-project-7831b.firebaseapp.com",
+    databaseURL: "https://gdp-project-7831b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "gdp-project-7831b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const datePicker = document.getElementById("datePicker");
+  datePicker.valueAsDate = new Date();
+
+  const chartCtx = document.getElementById('attendanceChart').getContext('2d');
+  let attendanceChart = new Chart(chartCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Present', 'Absent'],
+      datasets: [{
+        label: 'Attendance',
+        data: [0, 0],
+        backgroundColor: ['#4caf50', '#f44336']
+      }]
+    }
+  });
+
+  function loadAttendance(date) {
+    const tbody = document.getElementById("attendanceTable");
+    tbody.innerHTML = "";
+    db.ref("attendance/" + date).once("value").then(snapshot => {
+      const data = snapshot.val();
+      let present = 0, absent = 0;
+      for (let key in data) {
+        const status = data[key].status;
+        const name = data[key].name;
+        const row = `<tr><td>${name}</td><td>${status}</td></tr>`;
+        tbody.innerHTML += row;
+        if (status === "present") present++;
+        else absent++;
+      }
+      attendanceChart.data.datasets[0].data = [present, absent];
+      attendanceChart.update();
+    });
+  }
+
+  datePicker.addEventListener("change", () => {
+    const selectedDate = datePicker.value;
+    loadAttendance(selectedDate);
+  });
+
+  window.onload = () => {
+    loadAttendance(datePicker.value);
+  };
+</script>
+
+</body>
+</html>
