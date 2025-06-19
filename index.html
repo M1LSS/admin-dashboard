@@ -5,10 +5,9 @@
   <title>Smart Teacher Dashboard</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script defer src="app.js"></script>
-
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="nav">
@@ -37,14 +36,13 @@
     <div id="teachers" class="tab-content" style="display:none;">
       <h2>Manage Teachers</h2>
       <form id="addTeacherForm">
-  <input type="text" placeholder="UID" id="uid" required>
-  <input type="text" placeholder="Name" id="name" required>
-  <input type="text" placeholder="Subject" id="subject" required>
-  <input type="text" placeholder="Class" id="class" required>
-  <input type="text" placeholder="Phone" id="phone" required>
-  <button type="submit">Add Teacher</button>
-</form>
-
+        <input type="text" placeholder="UID" id="uid" required>
+        <input type="text" placeholder="Name" id="name" required>
+        <input type="text" placeholder="Subject" id="subject" required>
+        <input type="text" placeholder="Class" id="class" required>
+        <input type="text" placeholder="Phone" id="phone" required>
+        <button type="submit">Add Teacher</button>
+      </form>
     </div>
 
     <!-- Attendance -->
@@ -69,13 +67,13 @@
   </div>
 
   <script>
-    // Firebase Setup
-    const db = firebase.database();
-
+    // ✅ Make showTab globally accessible
     function showTab(id) {
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
       document.getElementById(id).style.display = 'block';
     }
+
+    const db = firebase.database();
 
     document.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().split("T")[0];
@@ -83,6 +81,7 @@
       dateInput.setAttribute("max", today);
       dateInput.value = today;
 
+      showTab("overview"); // ✅ default tab
       loadDashboardSummary();
       loadAttendance();
     });
@@ -103,7 +102,6 @@
         document.getElementById("absentCount").textContent = absent;
         document.getElementById("subsCount").textContent = substituted;
 
-        // Chart
         const ctx = document.getElementById("attendanceChart").getContext("2d");
         new Chart(ctx, {
           type: 'bar',
@@ -119,38 +117,31 @@
       });
     }
 
-    // ✅ Add Teacher using UID as the key
-document.getElementById("addTeacherForm").addEventListener("submit", e => {
-  e.preventDefault();
+    // ✅ Add Teacher
+    document.getElementById("addTeacherForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const uid = document.getElementById("uid").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const subject = document.getElementById("subject").value.trim();
+      const className = document.getElementById("class").value.trim();
+      const phone = document.getElementById("phone").value.trim();
 
-  const uid = document.getElementById("uid").value.trim();
-  const name = document.getElementById("name").value.trim();
-  const subject = document.getElementById("subject").value.trim();
-  const className = document.getElementById("class").value.trim();
-  const phone = document.getElementById("phone").value.trim();
+      if (!uid || !name || !subject || !className || !phone) {
+        alert("Please fill in all fields.");
+        return;
+      }
 
-  if (!uid || !name || !subject || !className || !phone) {
-    alert("Please fill in all fields.");
-    return;
-  }
-
-  const teacherData = {
-    name: name,
-    subject: subject,
-    class: className,
-    phone: phone
-  };
-
-  db.ref("teachers/" + uid).set(teacherData)
-    .then(() => {
-      alert("✅ Teacher added!");
-      e.target.reset();
-    })
-    .catch((error) => {
-      console.error("❌ Error adding teacher:", error);
-      alert("Error adding teacher. Check console for details.");
+      const teacherData = { name, subject, class: className, phone };
+      db.ref("teachers/" + uid).set(teacherData)
+        .then(() => {
+          alert("✅ Teacher added!");
+          e.target.reset();
+        })
+        .catch((error) => {
+          console.error("❌ Error adding teacher:", error);
+          alert("Error adding teacher.");
+        });
     });
-});
 
     // ✅ Attendance Tab
     function loadAttendance() {
