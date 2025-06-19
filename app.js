@@ -12,3 +12,27 @@ window.onload = function () {
     }
   });
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  const buttons = document.querySelectorAll(".tab-btn");
+  const tabs = document.querySelectorAll(".tab-content");
+
+  buttons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tabId = btn.getAttribute("data-tab");
+
+      // Toggle button active state
+      buttons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      // Toggle tab content
+      tabs.forEach(tab => {
+        tab.classList.toggle("active", tab.id === tabId);
+      });
+    });
+  });
+
+  // Show default tab
+  document.querySelector(".tab-btn.active").click();
+});
+
