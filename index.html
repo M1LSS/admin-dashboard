@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HR Teacher Attendance Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="header">
+    <h1>HR Teacher Attendance Dashboard</h1>
+    <div class="info">Data refreshed at <span id="refreshTime"></span></div>
+  </div>
+  <div class="filters">
+    <label>Select Date:</label>
+    <input type="date" id="dateFilter" onchange="loadAttendance()">
+  </div>
+  <div class="cards">
+    <div class="card"><h3>Unapproved Leave</h3><p id="unapprovedLeave">--</p></div>
+    <div class="card"><h3>Absences</h3><p id="absences">--</p></div>
+    <div class="card"><h3>Leave Taken</h3><p>Sick: <span id="sickLeave">--</span></p><p>Casual: <span id="casualLeave">--</span></p></div>
+    <div class="card"><h3>Attendance Rate</h3><canvas id="attendanceRateChart" width="120" height="120"></canvas></div>
+    <div class="card"><h3>Avg. Hours Worked</h3><canvas id="hoursWorkedChart" width="120" height="120"></canvas></div>
+  </div>
+  <div class="chart-section">
+    <h3>Attendance Statistics</h3>
+    <canvas id="attendanceStatsChart"></canvas>
+  </div>
+</body>
+</html>
