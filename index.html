@@ -6,19 +6,17 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script defer src="app.js"></script>
-
+  <script src="firebase-config.js"></script>
 </head>
 <body>
   <div class="nav">
     <h1>📊 Smart Teacher Attendance Dashboard</h1>
     <div class="tabs">
-      <button onclick="showTab('overview')">Overview</button>
-      <button onclick="showTab('teachers')">Teachers</button>
-      <button onclick="showTab('attendance')">Attendance</button>
-      <button onclick="showTab('substitution')">Substitution</button>
+      <button id="tab-overview">Overview</button>
+      <button id="tab-teachers">Teachers</button>
+      <button id="tab-attendance">Attendance</button>
+      <button id="tab-substitution">Substitution</button>
     </div>
   </div>
 
@@ -69,26 +67,35 @@
   </div>
 
   <script>
-    // ✅ Make showTab globally accessible
-    function showTab(id) {
-      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-      document.getElementById(id).style.display = 'block';
-    }
-
     const db = firebase.database();
 
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tabs button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(id).style.display = 'block';
+      document.getElementById("tab-" + id).classList.add('active');
+    }
+
+    // DOM Loaded
     document.addEventListener("DOMContentLoaded", () => {
+      // ✅ Tab buttons binding
+      document.getElementById("tab-overview").addEventListener("click", () => showTab("overview"));
+      document.getElementById("tab-teachers").addEventListener("click", () => showTab("teachers"));
+      document.getElementById("tab-attendance").addEventListener("click", () => showTab("attendance"));
+      document.getElementById("tab-substitution").addEventListener("click", () => showTab("substitution"));
+
+      // ✅ Default tab + date
+      showTab("overview");
       const today = new Date().toISOString().split("T")[0];
       const dateInput = document.getElementById("dateFilter");
       dateInput.setAttribute("max", today);
       dateInput.value = today;
 
-      showTab("overview"); // ✅ default tab
+      // ✅ Load data
       loadDashboardSummary();
       loadAttendance();
     });
 
-    // ✅ Overview Summary
     function loadDashboardSummary() {
       const today = new Date().toISOString().split("T")[0];
       db.ref("attendance/" + today).once("value", snapshot => {
@@ -119,7 +126,6 @@
       });
     }
 
-    // ✅ Add Teacher
     document.getElementById("addTeacherForm").addEventListener("submit", e => {
       e.preventDefault();
       const uid = document.getElementById("uid").value.trim();
@@ -145,7 +151,6 @@
         });
     });
 
-    // ✅ Attendance Tab
     function loadAttendance() {
       const date = document.getElementById("dateFilter").value;
       const tbody = document.getElementById("attendanceTable");
@@ -170,7 +175,6 @@
       });
     }
 
-    // ✅ Substitution Logic
     function assignSubstitutes() {
       const date = document.getElementById("dateFilter").value;
       db.ref("attendance/" + date).once("value", snapshot => {
