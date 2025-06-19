@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+    }
+    .login-box {
+      width: 300px;
+      margin: 10% auto;
+      padding: 2rem;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 10px;
+    }
+    .login-box h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 10px;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .login-box button {
+      width: 100%;
+      padding: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .login-box button:hover {
+      background: #2980b9;
+    }
+    .error {
+      color: red;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Admin Login</h2>
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <div class="error" id="errorMsg"></div>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <script>
+    function login() {
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+
+      // Simple hardcoded check (replace with Firebase Auth later)
+      if (user === "admin" && pass === "admin123") {
+        window.location.href = "index.html"; // Redirect to dashboard
+      } else {
+        document.getElementById("errorMsg").textContent = "Invalid username or password.";
+      }
+    }
+  </script>
+</body>
+</html>
