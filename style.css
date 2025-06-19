@@ -17,7 +17,13 @@ body {
   margin: 0.2rem;
   cursor: pointer;
 }
-.tabs button.active {
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+.tab-btn.active {
   background: #1abc9c;
 }
 .content {
