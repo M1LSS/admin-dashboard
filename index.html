@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Teacher Attendance & Substitution Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="nav">
+    <h1>📊 Admin Dashboard</h1>
+    <div class="tabs">
+      <button onclick="showTab('overview')">Overview</button>
+      <button onclick="showTab('teachers')">Teachers</button>
+      <button onclick="showTab('attendance')">Attendance</button>
+      <button onclick="showTab('substitution')">Substitution</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="overview" class="tab-content">
+      <h2>Today’s Summary</h2>
+      <ul>
+        <li>Total Present: <span id="presentCount">--</span></li>
+        <li>Total Absent: <span id="absentCount">--</span></li>
+        <li>Substitutions: <span id="subsCount">--</span></li>
+      </ul>
+      <canvas id="attendanceChart" width="400" height="200"></canvas>
+    </div>
+
+    <div id="teachers" class="tab-content" style="display:none;">
+      <h2>Manage Teachers</h2>
+      <form id="addTeacherForm">
+        <input type="text" placeholder="UID" required>
+        <input type="text" placeholder="Name" required>
+        <input type="text" placeholder="Subject" required>
+        <input type="text" placeholder="Class" required>
+        <button>Add Teacher</button>
+      </form>
+    </div>
+
+    <div id="attendance" class="tab-content" style="display:none;">
+      <h2>Attendance Records</h2>
+      <input type="date" id="dateFilter" onchange="loadAttendance()" max="">
+      <table>
+        <thead><tr><th>UID</th><th>Status</th><th>Punch In</th><th>Punch Out</th></tr></thead>
+        <tbody id="attendanceTable"></tbody>
+      </table>
+    </div>
+
+    <div id="substitution" class="tab-content" style="display:none;">
+      <h2>Substitution Assignments</h2>
+      <table>
+        <thead><tr><th>Absent Teacher</th><th>Class</th><th>Substitute</th></tr></thead>
+        <tbody>
+          <tr><td>Mr. John</td><td>2A</td><td>Ms. Anne</td></tr>
+          <tr><td>Ms. Rita</td><td>5C</td><td>Mr. Ali</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function showTab(id) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.getElementById(id).style.display = 'block';
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split("T")[0];
+      const dateInput = document.getElementById("dateFilter");
+      if (dateInput) {
+        dateInput.setAttribute("max", today);
+        dateInput.value = today;
+      }
+    });
+  </script>
+</body>
+</html>
