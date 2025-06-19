@@ -1,9 +1,9 @@
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "your-app.firebaseapp.com",
-  databaseURL: "https://your-app.firebaseio.com",
-  projectId: "your-app-id",
-  storageBucket: "your-app.appspot.com",
+  apiKey: "AIzaSyAtbaEMPmljXmEfUU7k00obcIh4WVfDo3Y",
+  authDomain: "gdp-project-7831b.firebaseapp.com",
+  databaseURL: "https://gdp-project-7831b-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "gdp-project-7831b",
+  storageBucket: "gdp-project-7831b.appspot.com",
   messagingSenderId: "",
   appId: ""
 };
