@@ -116,21 +116,38 @@
       });
     }
 
-    // ✅ Add Teacher
-    document.getElementById("addTeacherForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const uid = document.getElementById("uid").value;
-      const name = document.getElementById("name").value;
-      const subject = document.getElementById("subject").value;
-      const className = document.getElementById("class").value;
+    // ✅ Add Teacher using UID as the key
+document.getElementById("addTeacherForm").addEventListener("submit", e => {
+  e.preventDefault();
 
-      db.ref("teachers/" + uid).set({
-        uid, name, subject, class: className
-      }).then(() => {
-        alert("Teacher added!");
-        e.target.reset();
-      });
+  const uid = document.getElementById("uid").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const subject = document.getElementById("subject").value.trim();
+  const className = document.getElementById("class").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+
+  if (!uid || !name || !subject || !className || !phone) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  const teacherData = {
+    name: name,
+    subject: subject,
+    class: className,
+    phone: phone
+  };
+
+  db.ref("teachers/" + uid).set(teacherData)
+    .then(() => {
+      alert("✅ Teacher added!");
+      e.target.reset();
+    })
+    .catch((error) => {
+      console.error("❌ Error adding teacher:", error);
+      alert("Error adding teacher. Check console for details.");
     });
+});
 
     // ✅ Attendance Tab
     function loadAttendance() {
