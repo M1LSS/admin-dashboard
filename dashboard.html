@@ -21,8 +21,10 @@
     <button class="tab-button" onclick="showTab('add')">➕ Add New Teacher</button>
   </div>
   <div id="tab-list" class="tab-content">
-    <h2>Teacher Attendance</h2>
-    <button onclick="refreshData()" style="margin-left: 1rem;">🔄 Refresh</button>
+    <h2>
+  Teacher Attendance 
+  <button onclick="refreshData()" style="margin-left: 1rem;">🔄 Refresh</button>
+</h2>
     <div class="filters">
       <label for="dateFilter">📅 Date:</label>
       <input type="date" id="dateFilter">
@@ -38,7 +40,7 @@
       <tbody id="teacherTableBody"></tbody>
     </table>
     <h2>Overall Attendance Chart</h2>
-    <canvas id="attendanceChart" width="250" height="250" style="max-width: 250px; max-height: 250px;"></canvas>
+    <canvas id="attendanceChart" width="400" height="400"></canvas>
   </div>
   <div id="tab-add" class="tab-content" style="display: none;">
     <h2>Add New Teacher</h2>
@@ -71,6 +73,29 @@
       const dateMatch = !date || row.dataset.date === date;
       const subjectMatch = !subject || row.cells[2].textContent.toLowerCase().includes(subject);
       row.style.display = (dateMatch && subjectMatch) ? '' : 'none';
+    });
+  }
+</script>
+<script>
+  function refreshData() {
+    const teacherTable = document.getElementById("teacherTableBody");
+    teacherTable.innerHTML = "";
+    db.ref("teachers").once("value", snapshot => {
+      snapshot.forEach(child => {
+        const key = child.key;
+        const t = child.val();
+        const row = document.createElement("tr");
+        row.dataset.date = new Date().toISOString().split('T')[0];
+        row.innerHTML = `
+          <td>${t.uid}</td>
+          <td>${t.name}</td>
+          <td>${t.subject}</td>
+          <td>${t.phone}</td>
+          <td>${t.class}</td>
+          <td><button onclick="deleteTeacher('${key}')">Delete</button></td>
+        `;
+        teacherTable.appendChild(row);
+      });
     });
   }
 </script>
