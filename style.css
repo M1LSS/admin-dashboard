@@ -1,0 +1,82 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f5f5f5;
+}
+.nav {
+  background: #2c3e50;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+.container {
+  padding: 2rem;
+}
+button {
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #2980b9;
+}
+input {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 300px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+table, th, td {
+  border: 1px solid #ccc;
+}
+th, td {
+  padding: 0.5rem;
+  text-align: left;
+}
+.login-container {
+  max-width: 300px;
+  margin: 10% auto;
+  padding: 2rem;
+  background: white;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.tab-button {
+  padding: 0.5rem 1rem;
+  background: #34495e;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+.tab-button:hover {
+  background: #2c3e50;
+}
+.tab-content {
+  padding: 1rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.filters {
+  margin-bottom: 1rem;
+}
+.filters input, .filters button {
+  margin-right: 1rem;
+  padding: 0.4rem;
+}

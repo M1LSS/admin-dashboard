@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js" defer></script>
+  <script src="admin-app.js" defer></script>
+</head>
+<body>
+  <div class="nav">
+    <h1>Admin Dashboard</h1>
+  </div>
+
+  <div class="container">
+
+  <div class="tabs">
+    <button class="tab-button" onclick="showTab('list')">📋 Teacher Attendance</button>
+    <button class="tab-button" onclick="showTab('add')">➕ Add New Teacher</button>
+  </div>
+  <div id="tab-list" class="tab-content">
+    <h2>Teacher Attendance</h2>
+    <div class="filters">
+      <label for="dateFilter">📅 Date:</label>
+      <input type="date" id="dateFilter">
+      <label for="subjectFilter">📘 Subject:</label>
+      <input type="text" id="subjectFilter" placeholder="e.g. Math">
+      <button onclick="applyFilter()">Filter</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>UID</th><th>Name</th><th>Subject</th><th>Phone</th><th>Class</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="teacherTableBody"></tbody>
+    </table>
+    <h2>Overall Attendance Chart</h2>
+    <canvas id="attendanceChart" width="400" height="400"></canvas>
+  </div>
+  <div id="tab-add" class="tab-content" style="display: none;">
+    <h2>Add New Teacher</h2>
+    <form id="addTeacherForm">
+      <input type="text" id="uid" placeholder="UID" required>
+      <input type="text" id="name" placeholder="Name" required>
+      <input type="text" id="subject" placeholder="Subject" required>
+      <input type="text" id="phone" placeholder="Phone" required>
+      <input type="text" id="class" placeholder="Class" required>
+      <button type="submit">Add Teacher</button>
+    </form>
+  </div>
+  <script>
+    function showTab(tabName) {
+      document.getElementById('tab-list').style.display = tabName === 'list' ? 'block' : 'none';
+      document.getElementById('tab-add').style.display = tabName === 'add' ? 'block' : 'none';
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="chart.js"></script>
+
+</body>
+</html>
+<script>
+  function applyFilter() {
+    const date = document.getElementById('dateFilter').value;
+    const subject = document.getElementById('subjectFilter').value.toLowerCase();
+    const rows = document.querySelectorAll("#teacherTableBody tr");
+    rows.forEach(row => {
+      const dateMatch = !date || row.dataset.date === date;
+      const subjectMatch = !subject || row.cells[2].textContent.toLowerCase().includes(subject);
+      row.style.display = (dateMatch && subjectMatch) ? '' : 'none';
+    });
+  }
+</script>
