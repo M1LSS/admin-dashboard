@@ -14,14 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker
+  // Setup date picker - allow whole year range
   const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
+  const startOfYear = new Date(today.getFullYear(), 0, 1);
 
   const formatDate = d => d.toISOString().split("T")[0];
   const maxDate = formatDate(today);
-  const minDate = formatDate(yesterday);
+  const minDate = formatDate(startOfYear);
 
   const dateInput = document.getElementById("dateFilter");
   if (dateInput) {
@@ -31,39 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
     dateInput.addEventListener("change", loadAttendance);
   }
 
-  // ✅ Moved here: Add Teacher Form listener
-  const addTeacherForm = document.getElementById("addTeacherForm");
-  if (addTeacherForm) {
-    addTeacherForm.addEventListener("submit", e => {
-      e.preventDefault();
-      const uid = document.getElementById("uid").value.trim();
-      const name = document.getElementById("name").value.trim();
-      const subject = document.getElementById("subject").value.trim();
-      const className = document.getElementById("class").value.trim();
-      const phone = document.getElementById("phone").value.trim();
-
-      if (!uid || !name || !subject || !className || !phone) {
-        alert("Please fill in all fields.");
-        return;
-      }
-
-      db.ref("teachers/" + uid).set({ name, subject, class: className, phone })
-        .then(() => {
-          alert("✅ Teacher added!");
-          addTeacherForm.reset();
-        })
-        .catch(err => {
-          console.error("Error:", err);
-          alert("❌ Failed to store teacher's information.");
-        });
-    });
-  }
-
-  // Load initial data
   loadDashboardSummary();
   loadAttendance();
 });
-
 
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
@@ -129,29 +98,25 @@ function loadAttendance() {
   const formattedDate = `${yyyy}-${mm}-${dd}`;
 
   const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = ""; // Clear previous rows
+  tbody.innerHTML = "";
 
   db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
-      const row = tbody.insertRow();
-      const cell = row.insertCell();
-      cell.colSpan = 4;
-      cell.textContent = "No records found.";
+      tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
       return;
     }
 
     snapshot.forEach(child => {
       const d = child.val();
-      const row = tbody.insertRow();
-      row.insertCell().textContent = d.uid || child.key;
-      row.insertCell().textContent = d.status || "Absent";
-      row.insertCell().textContent = d.punch_in || "-";
-      row.insertCell().textContent = d.punch_out || "-";
+      tbody.innerHTML += `<tr>
+        <td>${d.uid || child.key}</td>
+        <td>${d.status || "Absent"}</td>
+        <td>${d.punch_in || "-"}</td>
+        <td>${d.punch_out || "-"}</td>
+      </tr>`;
     });
   });
 }
-
-
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
