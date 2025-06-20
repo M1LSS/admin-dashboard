@@ -14,13 +14,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker - allow whole year range
+  // Setup date picker (today and yesterday selectable)
   const today = new Date();
-  const startOfYear = new Date(today.getFullYear(), 0, 1);
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const maxDate = `${yyyy}-${mm}-${dd}`;
 
-  const formatDate = d => d.toISOString().split("T")[0];
-  const maxDate = formatDate(today);
-  const minDate = formatDate(startOfYear);
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const yyyyy = yesterday.getFullYear();
+  const ymm = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const ydd = String(yesterday.getDate()).padStart(2, '0');
+  const minDate = `${yyyyy}-${ymm}-${ydd}`;
 
   const dateInput = document.getElementById("dateFilter");
   if (dateInput) {
@@ -108,12 +114,17 @@ function loadAttendance() {
 
     snapshot.forEach(child => {
       const d = child.val();
-      tbody.innerHTML += `<tr>
-        <td>${d.uid || child.key}</td>
-        <td>${d.status || "Absent"}</td>
-        <td>${d.punch_in || "-"}</td>
-        <td>${d.punch_out || "-"}</td>
-      </tr>`;
+      const exists = document.querySelector(`tr[data-uid="${child.key}"]`);
+      if (!exists) {
+        const row = document.createElement("tr");
+        row.setAttribute("data-uid", child.key);
+        row.innerHTML = `
+          <td>${d.uid || child.key}</td>
+          <td>${d.status || "Absent"}</td>
+          <td>${d.punch_in || "-"}</td>
+          <td>${d.punch_out || "-"}</td>`;
+        tbody.appendChild(row);
+      }
     });
   });
 }
