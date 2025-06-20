@@ -14,29 +14,33 @@ document.addEventListener("DOMContentLoaded", () => {
   // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker (up to tomorrow only)
+  // Setup date picker (yesterday to tomorrow)
 const today = new Date();
 const tomorrow = new Date();
 tomorrow.setDate(today.getDate() + 1);
 
-// Format date function
+const yesterday = new Date();
+yesterday.setDate(today.getDate() - 1);
+
 const formatDate = (date) => {
   const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0'); // Correct: +1
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 };
 
-const minDate = formatDate(new Date(today.setDate(today.getDate() - 1))); // yesterday
-const maxDate = formatDate(tomorrow); // tomorrow
+const minDate = formatDate(yesterday);   // allow yesterday
+const maxDate = formatDate(tomorrow);    // block after tomorrow
+const defaultDate = formatDate(new Date()); // today
 
 const dateInput = document.getElementById("dateFilter");
 if (dateInput) {
   dateInput.setAttribute("min", minDate);
   dateInput.setAttribute("max", maxDate);
-  dateInput.value = formatDate(new Date()); // today
+  dateInput.value = defaultDate;
   dateInput.addEventListener("change", loadAttendance);
 }
+
 
 
   loadDashboardSummary();
