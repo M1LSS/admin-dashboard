@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
-  
+
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const tabId = btn.getAttribute("data-tab");
@@ -31,9 +31,39 @@ document.addEventListener("DOMContentLoaded", () => {
     dateInput.addEventListener("change", loadAttendance);
   }
 
+  // ✅ Moved here: Add Teacher Form listener
+  const addTeacherForm = document.getElementById("addTeacherForm");
+  if (addTeacherForm) {
+    addTeacherForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const uid = document.getElementById("uid").value.trim();
+      const name = document.getElementById("name").value.trim();
+      const subject = document.getElementById("subject").value.trim();
+      const className = document.getElementById("class").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+
+      if (!uid || !name || !subject || !className || !phone) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      db.ref("teachers/" + uid).set({ name, subject, class: className, phone })
+        .then(() => {
+          alert("✅ Teacher added!");
+          addTeacherForm.reset();
+        })
+        .catch(err => {
+          console.error("Error:", err);
+          alert("❌ Failed to store teacher's information.");
+        });
+    });
+  }
+
+  // Load initial data
   loadDashboardSummary();
   loadAttendance();
 });
+
 
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
