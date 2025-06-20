@@ -26,8 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAttendance();
 });
 
-const db = firebase.database();
-
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
 
