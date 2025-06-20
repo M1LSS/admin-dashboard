@@ -125,11 +125,12 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
-  const [yyyy, mm, dd] = input.split("-");
-  const formattedDate = `${yyyy}-${mm}-${dd}`;
+  const formattedDate = input;
 
   const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = "";
+  tbody.innerHTML = ""; // Clear before adding
+
+  const seen = new Set(); // ✅ Prevent duplicates
 
   db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
@@ -139,6 +140,9 @@ function loadAttendance() {
 
     snapshot.forEach(child => {
       const d = child.val();
+      if (seen.has(d.uid)) return; // ✅ Skip if already added
+      seen.add(d.uid);
+
       tbody.innerHTML += `<tr>
         <td>${d.uid || child.key}</td>
         <td>${d.status || "Absent"}</td>
@@ -148,6 +152,7 @@ function loadAttendance() {
     });
   });
 }
+
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
