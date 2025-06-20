@@ -125,33 +125,32 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
-  const formattedDate = input;
+  const [yyyy, mm, dd] = input.split("-");
+  const formattedDate = `${yyyy}-${mm}-${dd}`;
 
   const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = ""; // Clear before adding
-
-  const seen = new Set(); // ✅ Prevent duplicates
+  tbody.innerHTML = ""; // Clear previous rows
 
   db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
-      tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
+      const row = tbody.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 4;
+      cell.textContent = "No records found.";
       return;
     }
 
     snapshot.forEach(child => {
       const d = child.val();
-      if (seen.has(d.uid)) return; // ✅ Skip if already added
-      seen.add(d.uid);
-
-      tbody.innerHTML += `<tr>
-        <td>${d.uid || child.key}</td>
-        <td>${d.status || "Absent"}</td>
-        <td>${d.punch_in || "-"}</td>
-        <td>${d.punch_out || "-"}</td>
-      </tr>`;
+      const row = tbody.insertRow();
+      row.insertCell().textContent = d.uid || child.key;
+      row.insertCell().textContent = d.status || "Absent";
+      row.insertCell().textContent = d.punch_in || "-";
+      row.insertCell().textContent = d.punch_out || "-";
     });
   });
 }
+
 
 
 function assignSubstitutes() {
