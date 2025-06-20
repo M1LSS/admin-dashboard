@@ -11,18 +11,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  document.querySelector(".tab-btn.active").click();
+  // Default tab
+  document.querySelector(".tab-btn.active")?.click();
 
-  const today = new Date().toISOString().split("T")[0];
+  // Setup date picker
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const formatDate = d => d.toISOString().split("T")[0];
+  const maxDate = formatDate(today);
+  const minDate = formatDate(yesterday);
+
   const dateInput = document.getElementById("dateFilter");
   if (dateInput) {
-    dateInput.setAttribute("max", today);
-    dateInput.value = today;
+    dateInput.setAttribute("min", minDate);
+    dateInput.setAttribute("max", maxDate);
+    dateInput.value = maxDate;
+    dateInput.addEventListener("change", loadAttendance);
   }
 
   loadDashboardSummary();
   loadAttendance();
 });
+
+const db = firebase.database();
 
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
@@ -32,8 +45,7 @@ function loadDashboardSummary() {
 
     snapshot.forEach(child => {
       const d = child.val();
-      const status = d.status?.toLowerCase();
-      if (status === "present") present++;
+      if ((d.status || '').toLowerCase() === "present") present++;
       else absent++;
       if (d.substituted_by) substituted++;
     });
@@ -72,9 +84,7 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
     return;
   }
 
-  const teacherData = { uid, name, subject, class: className, phone };
-
-  db.ref("teachers").push(teacherData)
+  db.ref("teachers/" + uid).set({ name, subject, class: className, phone })
     .then(() => {
       alert("✅ Teacher added!");
       e.target.reset();
@@ -86,11 +96,14 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 });
 
 function loadAttendance() {
-  const date = document.getElementById("dateFilter").value;
+  const input = document.getElementById("dateFilter").value;
+  const [yyyy, mm, dd] = input.split("-");
+  const formattedDate = `${yyyy}-${mm}-${dd}`;
+
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
       tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
       return;
@@ -99,10 +112,10 @@ function loadAttendance() {
     snapshot.forEach(child => {
       const d = child.val();
       tbody.innerHTML += `<tr>
-        <td>${d.uid}</td>
+        <td>${d.uid || child.key}</td>
         <td>${d.status || "Absent"}</td>
-        <td>${d["punch-in timestamp"] || d.punch_in || "-"}</td>
-        <td>${d["punch-out timestamp"] || d.punch_out || "-"}</td>
+        <td>${d.punch_in || "-"}</td>
+        <td>${d.punch_out || "-"}</td>
       </tr>`;
     });
   });
@@ -110,18 +123,21 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
-  db.ref("attendance/" + date).once("value", snapshot => {
+  const [yyyy, mm, dd] = date.split("-");
+  const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
       const d = child.val();
-      if (d.status?.toLowerCase() === "present") available.push(d.uid);
+      if ((d.status || '').toLowerCase() === "present") available.push(d.uid);
       else absent.push(child.key);
     });
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -131,13 +147,16 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
+  const [yyyy, mm, dd] = date.split("-");
+  const formattedDate = `${yyyy}-${mm}-${dd}`;
+
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
-      if (d.status?.toLowerCase() === "absent" && d.substituted_by) {
+      if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
         table.innerHTML += `<tr>
           <td>${d.name || d.uid}</td>
           <td>${d.class || "-"}</td>
