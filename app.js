@@ -11,37 +11,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker (yesterday to tomorrow)
-const today = new Date();
-const tomorrow = new Date();
-tomorrow.setDate(today.getDate() + 1);
+  // Setup date picker (allow only yesterday, today, tomorrow)
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
 
-const yesterday = new Date();
-yesterday.setDate(today.getDate() - 1);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
 
-const formatDate = (date) => {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0'); // Correct: +1
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-};
+  const formatDate = (date) => {
+    return date.toISOString().split("T")[0];
+  };
 
-const minDate = formatDate(yesterday);   // allow yesterday
-const maxDate = formatDate(tomorrow);    // block after tomorrow
-const defaultDate = formatDate(new Date()); // today
-
-const dateInput = document.getElementById("dateFilter");
-if (dateInput) {
-  dateInput.setAttribute("min", minDate);
-  dateInput.setAttribute("max", maxDate);
-  dateInput.value = defaultDate;
-  dateInput.addEventListener("change", loadAttendance);
-}
-
-
+  const dateInput = document.getElementById("dateFilter");
+  if (dateInput) {
+    dateInput.setAttribute("min", formatDate(yesterday));
+    dateInput.setAttribute("max", formatDate(tomorrow));
+    dateInput.value = formatDate(today);
+    dateInput.addEventListener("change", loadAttendance);
+  }
 
   loadDashboardSummary();
   loadAttendance();
@@ -107,8 +97,7 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
-  const [yyyy, mm, dd] = input.split("-");
-  const formattedDate = `${yyyy}-${mm}-${dd}`;
+  const formattedDate = input;
 
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
@@ -119,17 +108,21 @@ function loadAttendance() {
       return;
     }
 
+    const seen = new Set();
+
     snapshot.forEach(child => {
       const d = child.val();
-      const exists = document.querySelector(`tr[data-uid="${child.key}"]`);
-      if (!exists) {
+      const uid = d.uid || child.key;
+
+      if (!seen.has(uid)) {
+        seen.add(uid);
         const row = document.createElement("tr");
-        row.setAttribute("data-uid", child.key);
         row.innerHTML = `
-          <td>${d.uid || child.key}</td>
+          <td>${uid}</td>
           <td>${d.status || "Absent"}</td>
           <td>${d.punch_in || "-"}</td>
-          <td>${d.punch_out || "-"}</td>`;
+          <td>${d.punch_out || "-"}</td>
+        `;
         tbody.appendChild(row);
       }
     });
@@ -138,10 +131,8 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
-  const [yyyy, mm, dd] = date.split("-");
-  const formattedDate = `${yyyy}-${mm}-${dd}`;
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
@@ -152,7 +143,7 @@ function assignSubstitutes() {
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -162,13 +153,10 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
-  const [yyyy, mm, dd] = date.split("-");
-  const formattedDate = `${yyyy}-${mm}-${dd}`;
-
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
       if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
