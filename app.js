@@ -14,27 +14,30 @@ document.addEventListener("DOMContentLoaded", () => {
   // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker (today and yesterday selectable)
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 0).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const maxDate = `${yyyy}-${mm}-${dd}`;
+  // Setup date picker (up to tomorrow only)
+const today = new Date();
+const tomorrow = new Date();
+tomorrow.setDate(today.getDate() + 1);
 
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  const yyyyy = yesterday.getFullYear();
-  const ymm = String(yesterday.getMonth() + 1).padStart(2, '0');
-  const ydd = String(yesterday.getDate()).padStart(2, '0');
-  const minDate = `${yyyyy}-${ymm}-${ydd}`;
+// Format date function
+const formatDate = (date) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
 
-  const dateInput = document.getElementById("dateFilter");
-  if (dateInput) {
-    dateInput.setAttribute("min", minDate);
-    dateInput.setAttribute("max", maxDate);
-    dateInput.value = maxDate;
-    dateInput.addEventListener("change", loadAttendance);
-  }
+const minDate = formatDate(new Date(today.setDate(today.getDate() - 1))); // yesterday
+const maxDate = formatDate(tomorrow); // tomorrow
+
+const dateInput = document.getElementById("dateFilter");
+if (dateInput) {
+  dateInput.setAttribute("min", minDate);
+  dateInput.setAttribute("max", maxDate);
+  dateInput.value = formatDate(new Date()); // today
+  dateInput.addEventListener("change", loadAttendance);
+}
+
 
   loadDashboardSummary();
   loadAttendance();
