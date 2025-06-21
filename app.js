@@ -98,9 +98,8 @@ function loadAttendance() {
   const formattedDate = `${yyyy}-${mm}-${dd}`;
 
   const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = "";
-
-  const displayedUIDs = new Set();
+  tbody.innerHTML = ""; // Clear previous rows
+  const displayedUIDs = new Set(); // Reset UID tracker on each call
 
   db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
@@ -110,11 +109,13 @@ function loadAttendance() {
 
     snapshot.forEach(child => {
       const d = child.val();
-      if (!displayedUIDs.has(child.key)) {
-        displayedUIDs.add(child.key);
+      const uid = d.uid || child.key;
+
+      if (!displayedUIDs.has(uid)) {
+        displayedUIDs.add(uid);
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${d.uid || child.key}</td>
+          <td>${uid}</td>
           <td>${d.status || "Absent"}</td>
           <td>${d.punch_in || "-"}</td>
           <td>${d.punch_out || "-"}</td>`;
@@ -123,6 +124,7 @@ function loadAttendance() {
     });
   });
 }
+
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
