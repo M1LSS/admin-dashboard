@@ -186,11 +186,11 @@ function loadTeachers() {
       const data = child.val();
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td><span class="display">${child.key}</span><input class="edit" type="text" value="${child.key}" style="display:none"></td>
-        <td><span class="display">${data.name}</span><input class="edit" type="text" value="${data.name}" style="display:none"></td>
-        <td><span class="display">${data.subject}</span><input class="edit" type="text" value="${data.subject}" style="display:none"></td>
-        <td><span class="display">${data.class}</span><input class="edit" type="text" value="${data.class}" style="display:none"></td>
-        <td><span class="display">${data.phone}</span><input class="edit" type="text" value="${data.phone}" style="display:none"></td>
+        <td><span class="display">${child.key}</span><input class="edit" type="text" value="${child.key}" style="display:none" name="uid"></td>
+        <td><span class="display">${data.name}</span><input class="edit" type="text" value="${data.name}" style="display:none" name="name"></td>
+        <td><span class="display">${data.subject}</span><input class="edit" type="text" value="${data.subject}" style="display:none" name="subject"></td>
+        <td><span class="display">${data.class}</span><input class="edit" type="text" value="${data.class}" style="display:none" name="class"></td>
+        <td><span class="display">${data.phone}</span><input class="edit" type="text" value="${data.phone}" style="display:none" name="phone"></td>
         <td>
           <button class="editBtn">Edit</button>
           <button class="saveBtn" style="display:none">Update</button>
@@ -224,17 +224,28 @@ function loadTeachers() {
         };
 
         if (newUid !== oldUid) {
-          db.ref("teachers/" + newUid).set(updatedData).then(() => {
-            db.ref("teachers/" + oldUid).remove().then(loadTeachers);
-          });
+          db.ref("teachers/" + newUid).set(updatedData)
+            .then(() => db.ref("teachers/" + oldUid).remove())
+            .then(() => {
+              alert("✅ Teacher info updated successfully!");
+              loadTeachers();
+            });
         } else {
-          db.ref("teachers/" + oldUid).set(updatedData).then(loadTeachers);
+          db.ref("teachers/" + oldUid).set(updatedData)
+            .then(() => {
+              alert("✅ Teacher info updated successfully!");
+              loadTeachers();
+            });
         }
       });
 
       deleteBtn.addEventListener("click", () => {
         if (confirm("Are you sure to delete this teacher?")) {
-          db.ref("teachers/" + child.key).remove().then(loadTeachers);
+          db.ref("teachers/" + child.key).remove()
+            .then(() => {
+              alert("🗑️ Teacher has been deleted.");
+              loadTeachers();
+            });
         }
       });
     });
