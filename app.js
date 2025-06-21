@@ -11,25 +11,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker (allow only yesterday, today, tomorrow)
+  // Setup date picker without min/max restrictions
   const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
   const formatDate = (date) => {
-    return date.toISOString().split("T")[0];
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   };
 
+  const defaultDate = formatDate(today);
   const dateInput = document.getElementById("dateFilter");
   if (dateInput) {
-    dateInput.setAttribute("min", formatDate(yesterday));
-    dateInput.setAttribute("max", formatDate(tomorrow));
-    dateInput.value = formatDate(today);
+    dateInput.value = defaultDate;
     dateInput.addEventListener("change", loadAttendance);
   }
 
@@ -97,10 +94,13 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
-  const formattedDate = input;
+  const [yyyy, mm, dd] = input.split("-");
+  const formattedDate = `${yyyy}-${mm}-${dd}`;
 
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
+
+  const displayedUIDs = new Set();
 
   db.ref("attendance/" + formattedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
@@ -108,21 +108,16 @@ function loadAttendance() {
       return;
     }
 
-    const seen = new Set();
-
     snapshot.forEach(child => {
       const d = child.val();
-      const uid = d.uid || child.key;
-
-      if (!seen.has(uid)) {
-        seen.add(uid);
+      if (!displayedUIDs.has(child.key)) {
+        displayedUIDs.add(child.key);
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${uid}</td>
+          <td>${d.uid || child.key}</td>
           <td>${d.status || "Absent"}</td>
           <td>${d.punch_in || "-"}</td>
-          <td>${d.punch_out || "-"}</td>
-        `;
+          <td>${d.punch_out || "-"}</td>`;
         tbody.appendChild(row);
       }
     });
@@ -131,8 +126,9 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
+  const formattedDate = date;
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
@@ -143,7 +139,7 @@ function assignSubstitutes() {
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -153,10 +149,12 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
+  const formattedDate = date;
+
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
       if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
