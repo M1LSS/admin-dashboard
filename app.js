@@ -99,32 +99,40 @@ function loadAttendance() {
 
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = ""; // Clear previous rows
-  const displayedUIDs = new Set(); // Reset UID tracker on each call
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
-    if (!snapshot.exists()) {
-      tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
-      return;
-    }
+  db.ref("teachers").once("value", teachersSnapshot => {
+    const teacherMap = {};
+    teachersSnapshot.forEach(child => {
+      teacherMap[child.key] = child.val().name;
+    });
 
-    snapshot.forEach(child => {
-      const d = child.val();
-      const uid = d.uid || child.key;
-
-      if (!displayedUIDs.has(uid)) {
-        displayedUIDs.add(uid);
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${uid}</td>
-          <td>${d.status || "Absent"}</td>
-          <td>${d.punch_in || "-"}</td>
-          <td>${d.punch_out || "-"}</td>`;
-        tbody.appendChild(row);
+    db.ref("attendance/" + formattedDate).once("value", snapshot => {
+      if (!snapshot.exists()) {
+        tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
+        return;
       }
+
+      const displayedUIDs = new Set();
+      snapshot.forEach(child => {
+        const d = child.val();
+        const uid = d.uid || child.key;
+
+        if (!displayedUIDs.has(uid)) {
+          displayedUIDs.add(uid);
+          const teacherName = teacherMap[uid] || uid;
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${teacherName}</td>
+            <td>${d.status || "Absent"}</td>
+            <td>${d.punch_in || "-"}</td>
+            <td>${d.punch_out || "-"}</td>`;
+          tbody.appendChild(row);
+        }
+      });
     });
   });
 }
-
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
