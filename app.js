@@ -1,7 +1,3 @@
-// Firebase database reference assumed to be defined globally as 'db'
-
-// Tab and date picker setup
-
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -12,11 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
       buttons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       tabs.forEach(tab => tab.classList.toggle("active", tab.id === tabId));
-
-      // Load teachers table on tab switch
-      if (tabId === "teachers") {
-        loadTeachersTable();
-      }
     });
   });
 
@@ -39,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadDashboardSummary();
   loadAttendance();
+  loadTeachers();
 });
 
 function loadDashboardSummary() {
@@ -92,7 +84,7 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
     .then(() => {
       alert("✅ Teacher added!");
       e.target.reset();
-      loadTeachersTable();
+      loadTeachers();
     })
     .catch(err => {
       console.error("Error:", err);
@@ -102,8 +94,7 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
-  const [yyyy, mm, dd] = input.split("-");
-  const formattedDate = `${yyyy}-${mm}-${dd}`;
+  const formattedDate = input;
 
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
@@ -144,8 +135,9 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
+  const formattedDate = date;
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
@@ -156,7 +148,7 @@ function assignSubstitutes() {
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -166,10 +158,12 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
+  const formattedDate = date;
+
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + date).once("value", snapshot => {
+  db.ref("attendance/" + formattedDate).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
       if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
@@ -183,62 +177,66 @@ function loadSubstitutions() {
   });
 }
 
-function loadTeachersTable() {
-  const tbody = document.querySelector("#teachersTable tbody");
-  if (!tbody) return;
+function loadTeachers() {
+  const table = document.getElementById("teachersTable").querySelector("tbody");
+  table.innerHTML = "";
 
-  tbody.innerHTML = "";
   db.ref("teachers").once("value", snapshot => {
     snapshot.forEach(child => {
-      const uid = child.key;
       const data = child.val();
-
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${uid}</td>
-        <td><input type="text" value="${data.name}" /></td>
-        <td><input type="text" value="${data.subject}" /></td>
-        <td><input type="text" value="${data.class}" /></td>
-        <td><input type="text" value="${data.phone}" /></td>
+        <td><span class="display">${child.key}</span><input class="edit" type="text" value="${child.key}" style="display:none"></td>
+        <td><span class="display">${data.name}</span><input class="edit" type="text" value="${data.name}" style="display:none"></td>
+        <td><span class="display">${data.subject}</span><input class="edit" type="text" value="${data.subject}" style="display:none"></td>
+        <td><span class="display">${data.class}</span><input class="edit" type="text" value="${data.class}" style="display:none"></td>
+        <td><span class="display">${data.phone}</span><input class="edit" type="text" value="${data.phone}" style="display:none"></td>
         <td>
-          <button onclick="updateTeacher('${uid}', this)">Update</button>
-          <button onclick="deleteTeacher('${uid}')">Delete</button>
+          <button class="editBtn">Edit</button>
+          <button class="saveBtn" style="display:none">Update</button>
+          <button class="deleteBtn">Delete</button>
         </td>
       `;
-      tbody.appendChild(row);
+      table.appendChild(row);
+
+      const editBtn = row.querySelector(".editBtn");
+      const saveBtn = row.querySelector(".saveBtn");
+      const deleteBtn = row.querySelector(".deleteBtn");
+
+      editBtn.addEventListener("click", () => {
+        row.querySelectorAll(".display").forEach(e => e.style.display = "none");
+        row.querySelectorAll(".edit").forEach(e => e.style.display = "inline-block");
+        editBtn.style.display = "none";
+        saveBtn.style.display = "inline-block";
+      });
+
+      saveBtn.addEventListener("click", () => {
+        const inputs = row.querySelectorAll("input.edit");
+        const [uidInput, nameInput, subjectInput, classInput, phoneInput] = inputs;
+
+        const oldUid = child.key;
+        const newUid = uidInput.value.trim();
+        const updatedData = {
+          name: nameInput.value.trim(),
+          subject: subjectInput.value.trim(),
+          class: classInput.value.trim(),
+          phone: phoneInput.value.trim()
+        };
+
+        if (newUid !== oldUid) {
+          db.ref("teachers/" + newUid).set(updatedData).then(() => {
+            db.ref("teachers/" + oldUid).remove().then(loadTeachers);
+          });
+        } else {
+          db.ref("teachers/" + oldUid).set(updatedData).then(loadTeachers);
+        }
+      });
+
+      deleteBtn.addEventListener("click", () => {
+        if (confirm("Are you sure to delete this teacher?")) {
+          db.ref("teachers/" + child.key).remove().then(loadTeachers);
+        }
+      });
     });
   });
-}
-
-function updateTeacher(uid, btn) {
-  const row = btn.closest("tr");
-  const inputs = row.querySelectorAll("input");
-
-  const updatedData = {
-    name: inputs[0].value.trim(),
-    subject: inputs[1].value.trim(),
-    class: inputs[2].value.trim(),
-    phone: inputs[3].value.trim()
-  };
-
-  db.ref("teachers/" + uid).set(updatedData)
-    .then(() => alert("✅ Teacher updated"))
-    .catch(err => {
-      console.error(err);
-      alert("❌ Failed to update teacher");
-    });
-}
-
-function deleteTeacher(uid) {
-  if (confirm(`Are you sure you want to delete teacher ${uid}?`)) {
-    db.ref("teachers/" + uid).remove()
-      .then(() => {
-        alert("🗑️ Teacher deleted");
-        loadTeachersTable();
-      })
-      .catch(err => {
-        console.error(err);
-        alert("❌ Failed to delete teacher");
-      });
-  }
 }
