@@ -1,3 +1,7 @@
+// Firebase database reference assumed to be defined globally as 'db'
+
+// Tab and date picker setup
+
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -8,13 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
       buttons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       tabs.forEach(tab => tab.classList.toggle("active", tab.id === tabId));
+
+      // Load teachers table on tab switch
+      if (tabId === "teachers") {
+        loadTeachersTable();
+      }
     });
   });
 
-  // Default tab
   document.querySelector(".tab-btn.active")?.click();
 
-  // Setup date picker without min/max restrictions
   const today = new Date();
   const formatDate = (date) => {
     const yyyy = date.getFullYear();
@@ -85,6 +92,7 @@ document.getElementById("addTeacherForm").addEventListener("submit", e => {
     .then(() => {
       alert("✅ Teacher added!");
       e.target.reset();
+      loadTeachersTable();
     })
     .catch(err => {
       console.error("Error:", err);
@@ -98,7 +106,7 @@ function loadAttendance() {
   const formattedDate = `${yyyy}-${mm}-${dd}`;
 
   const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = ""; // Clear previous rows
+  tbody.innerHTML = "";
 
   db.ref("teachers").once("value", teachersSnapshot => {
     const teacherMap = {};
@@ -136,9 +144,8 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
-  const formattedDate = date;
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
@@ -149,7 +156,7 @@ function assignSubstitutes() {
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -159,12 +166,10 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
-  const formattedDate = date;
-
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
       if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
@@ -176,4 +181,64 @@ function loadSubstitutions() {
       }
     });
   });
+}
+
+function loadTeachersTable() {
+  const tbody = document.querySelector("#teachersTable tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  db.ref("teachers").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const data = child.val();
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${uid}</td>
+        <td><input type="text" value="${data.name}" /></td>
+        <td><input type="text" value="${data.subject}" /></td>
+        <td><input type="text" value="${data.class}" /></td>
+        <td><input type="text" value="${data.phone}" /></td>
+        <td>
+          <button onclick="updateTeacher('${uid}', this)">Update</button>
+          <button onclick="deleteTeacher('${uid}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+}
+
+function updateTeacher(uid, btn) {
+  const row = btn.closest("tr");
+  const inputs = row.querySelectorAll("input");
+
+  const updatedData = {
+    name: inputs[0].value.trim(),
+    subject: inputs[1].value.trim(),
+    class: inputs[2].value.trim(),
+    phone: inputs[3].value.trim()
+  };
+
+  db.ref("teachers/" + uid).set(updatedData)
+    .then(() => alert("✅ Teacher updated"))
+    .catch(err => {
+      console.error(err);
+      alert("❌ Failed to update teacher");
+    });
+}
+
+function deleteTeacher(uid) {
+  if (confirm(`Are you sure you want to delete teacher ${uid}?`)) {
+    db.ref("teachers/" + uid).remove()
+      .then(() => {
+        alert("🗑️ Teacher deleted");
+        loadTeachersTable();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("❌ Failed to delete teacher");
+      });
+  }
 }
