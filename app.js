@@ -116,18 +116,17 @@ function loadAttendance() {
         const d = child.val();
         const uid = d.uid || child.key;
 
-        if (!displayedUIDs.has(uid)) {
-          displayedUIDs.add(uid);
-          const teacherName = teacherMap[uid] || uid;
+        if (displayedUIDs.has(uid)) return;
+        displayedUIDs.add(uid);
 
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${teacherName}</td>
-            <td>${d.status || "Absent"}</td>
-            <td>${d.punch_in || "-"}</td>
-            <td>${d.punch_out || "-"}</td>`;
-          tbody.appendChild(row);
-        }
+        const teacherName = teacherMap[uid] || uid;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${teacherName}</td>
+          <td>${d.status || "Absent"}</td>
+          <td>${d.punch_in || "-"}</td>
+          <td>${d.punch_out || "-"}</td>`;
+        tbody.appendChild(row);
       });
     });
   });
