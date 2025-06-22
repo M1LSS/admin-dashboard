@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelector(".tab-btn.active")?.click();
 
-  // Format current date as YYYY-MM-DD
   const today = new Date();
   const formatDate = (date) => {
     const yyyy = date.getFullYear();
@@ -24,25 +23,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const defaultDate = formatDate(today);
   const dateInput = document.getElementById("dateFilter");
-
   if (dateInput) {
-    // Only assign once
-    if (!dateInput.dataset.listenerAttached) {
-      dateInput.value = defaultDate;
-      dateInput.dataset.listenerAttached = "true";
-      dateInput.addEventListener("change", () => {
-        loadAttendance();
-        loadSubstitutions();
-      });
-    }
+    dateInput.value = defaultDate;
+    dateInput.addEventListener("change", loadAttendance);
   }
 
-  // Initial loads
   loadDashboardSummary();
   loadAttendance();
   loadTeachers();
 });
-
 
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
