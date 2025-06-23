@@ -59,9 +59,17 @@
 
     <div id="attendance" class="tab-content">
       <h2>Attendance Records</h2>
-      <input type="date" id="dateFilter" max="">
+      <label for="dateFilter">Date:</label>
+      <input type="date" id="dateFilter">
       <table>
-        <thead><tr><th>UID</th><th>Status</th><th>Punch In</th><th>Punch Out</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Teacher</th>
+            <th>Status</th>
+            <th>Punch In</th>
+            <th>Punch Out</th>
+          </tr>
+        </thead>
         <tbody id="attendanceTable"></tbody>
       </table>
     </div>
@@ -70,7 +78,13 @@
       <h2>Substitution Assignments</h2>
       <button onclick="assignSubstitutes()">Auto Assign Substitutes</button>
       <table>
-        <thead><tr><th>Absent Teacher</th><th>Class</th><th>Substitute</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Absent Teacher</th>
+            <th>Class</th>
+            <th>Substitute</th>
+          </tr>
+        </thead>
         <tbody id="substitutionTableBody"></tbody>
       </table>
     </div>
