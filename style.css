@@ -27,6 +27,10 @@ body {
   display: none;
 }
 
+.tab-btn {
+  cursor: pointer;
+}
+
 .tab-content.active {
   display: block;
 }
