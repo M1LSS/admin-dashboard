@@ -1,5 +1,6 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  // ✅ TAB SWITCHING
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
 
@@ -18,11 +19,12 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   });
-});
 
+  // ✅ Set default tab
+  const defaultTab = document.querySelector(".tab-btn.active");
+  if (defaultTab) defaultTab.click();
 
-  document.querySelector(".tab-btn.active")?.click();
-
+  // ✅ DATE SETUP FOR ATTENDANCE FILTER
   const today = new Date();
   const formatDate = (date) => {
     const yyyy = date.getFullYear();
@@ -41,11 +43,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ✅ INITIAL LOAD
   loadDashboardSummary();
   loadAttendance();
   loadTeachers();
 });
 
+// ✅ LOAD SUMMARY STATS
 function loadDashboardSummary() {
   const today = new Date().toISOString().split("T")[0];
 
@@ -80,6 +84,7 @@ function loadDashboardSummary() {
   });
 }
 
+// ✅ LOAD ATTENDANCE TABLE
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
   const formattedDate = input;
@@ -120,6 +125,7 @@ function loadAttendance() {
   });
 }
 
+// ✅ ASSIGN SUBSTITUTES
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
 
@@ -142,9 +148,9 @@ function assignSubstitutes() {
   });
 }
 
+// ✅ LOAD SUBSTITUTE TABLE
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
-
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
@@ -160,5 +166,10 @@ function loadSubstitutions() {
       }
     });
   });
+}
+
+// ✅ LOAD TEACHERS (used elsewhere, not repeated here)
+function loadTeachers() {
+  // Assume this is implemented in your existing app.js
 }
 </script>
