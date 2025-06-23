@@ -1,3 +1,4 @@
+<script>
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -25,7 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const dateInput = document.getElementById("dateFilter");
   if (dateInput) {
     dateInput.value = defaultDate;
-    dateInput.addEventListener("change", loadAttendance);
+    dateInput.addEventListener("change", () => {
+      loadAttendance();
+      loadSubstitutions();
+    });
   }
 
   loadDashboardSummary();
@@ -66,31 +70,6 @@ function loadDashboardSummary() {
     }
   });
 }
-
-document.getElementById("addTeacherForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const uid = document.getElementById("uid").value.trim();
-  const name = document.getElementById("name").value.trim();
-  const subject = document.getElementById("subject").value.trim();
-  const className = document.getElementById("class").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-
-  if (!uid || !name || !subject || !className || !phone) {
-    alert("Please fill in all fields.");
-    return;
-  }
-
-  db.ref("teachers/" + uid).set({ name, subject, class: className, phone })
-    .then(() => {
-      alert("✅ Teacher added!");
-      e.target.reset();
-      loadTeachers();
-    })
-    .catch(err => {
-      console.error("Error:", err);
-      alert("❌ Failed to store teacher's information.");
-    });
-});
 
 function loadAttendance() {
   const input = document.getElementById("dateFilter").value;
@@ -134,9 +113,8 @@ function loadAttendance() {
 
 function assignSubstitutes() {
   const date = document.getElementById("dateFilter").value;
-  const formattedDate = date;
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     const available = [], absent = [];
 
     snapshot.forEach(child => {
@@ -147,7 +125,7 @@ function assignSubstitutes() {
 
     absent.forEach((absentKey, i) => {
       const sub = available[i % available.length];
-      db.ref(`attendance/${formattedDate}/${absentKey}/substituted_by`).set(sub);
+      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
     });
 
     alert("✅ Substitutes assigned.");
@@ -157,12 +135,11 @@ function assignSubstitutes() {
 
 function loadSubstitutions() {
   const date = document.getElementById("dateFilter").value;
-  const formattedDate = date;
 
   const table = document.getElementById("substitutionTableBody");
   table.innerHTML = "";
 
-  db.ref("attendance/" + formattedDate).once("value", snapshot => {
+  db.ref("attendance/" + date).once("value", snapshot => {
     snapshot.forEach(child => {
       const d = child.val();
       if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
@@ -175,78 +152,4 @@ function loadSubstitutions() {
     });
   });
 }
-
-function loadTeachers() {
-  const table = document.getElementById("teachersTable").querySelector("tbody");
-  table.innerHTML = "";
-
-  db.ref("teachers").once("value", snapshot => {
-    snapshot.forEach(child => {
-      const data = child.val();
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><span class="display">${child.key}</span><input class="edit" type="text" value="${child.key}" style="display:none" name="uid"></td>
-        <td><span class="display">${data.name}</span><input class="edit" type="text" value="${data.name}" style="display:none" name="name"></td>
-        <td><span class="display">${data.subject}</span><input class="edit" type="text" value="${data.subject}" style="display:none" name="subject"></td>
-        <td><span class="display">${data.class}</span><input class="edit" type="text" value="${data.class}" style="display:none" name="class"></td>
-        <td><span class="display">${data.phone}</span><input class="edit" type="text" value="${data.phone}" style="display:none" name="phone"></td>
-        <td>
-          <button class="editBtn">Edit</button>
-          <button class="saveBtn" style="display:none">Update</button>
-          <button class="deleteBtn">Delete</button>
-        </td>
-      `;
-      table.appendChild(row);
-
-      const editBtn = row.querySelector(".editBtn");
-      const saveBtn = row.querySelector(".saveBtn");
-      const deleteBtn = row.querySelector(".deleteBtn");
-
-      editBtn.addEventListener("click", () => {
-        row.querySelectorAll(".display").forEach(e => e.style.display = "none");
-        row.querySelectorAll(".edit").forEach(e => e.style.display = "inline-block");
-        editBtn.style.display = "none";
-        saveBtn.style.display = "inline-block";
-      });
-
-      saveBtn.addEventListener("click", () => {
-        const inputs = row.querySelectorAll("input.edit");
-        const [uidInput, nameInput, subjectInput, classInput, phoneInput] = inputs;
-
-        const oldUid = child.key;
-        const newUid = uidInput.value.trim();
-        const updatedData = {
-          name: nameInput.value.trim(),
-          subject: subjectInput.value.trim(),
-          class: classInput.value.trim(),
-          phone: phoneInput.value.trim()
-        };
-
-        if (newUid !== oldUid) {
-          db.ref("teachers/" + newUid).set(updatedData)
-            .then(() => db.ref("teachers/" + oldUid).remove())
-            .then(() => {
-              alert("✅ Teacher info updated successfully!");
-              loadTeachers();
-            });
-        } else {
-          db.ref("teachers/" + oldUid).set(updatedData)
-            .then(() => {
-              alert("✅ Teacher info updated successfully!");
-              loadTeachers();
-            });
-        }
-      });
-
-      deleteBtn.addEventListener("click", () => {
-        if (confirm("Are you sure to delete this teacher?")) {
-          db.ref("teachers/" + child.key).remove()
-            .then(() => {
-              alert("🗑️ Teacher has been deleted.");
-              loadTeachers();
-            });
-        }
-      });
-    });
-  });
-}
+</script>
