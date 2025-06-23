@@ -6,11 +6,20 @@ document.addEventListener("DOMContentLoaded", () => {
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const tabId = btn.getAttribute("data-tab");
+
       buttons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      tabs.forEach(tab => tab.classList.toggle("active", tab.id === tabId));
+
+      tabs.forEach(tab => {
+        tab.classList.remove("active");
+        if (tab.id === tabId) {
+          tab.classList.add("active");
+        }
+      });
     });
   });
+});
+
 
   document.querySelector(".tab-btn.active")?.click();
 
