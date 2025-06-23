@@ -6,12 +6,12 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
 </head>
 <body>
   <div class="nav">
-    <h1>📊 Smart Teacher Attendance Dashboard</h1>
+    <h1>Smart Teacher Attendance Dashboard</h1>
     <div class="tabs">
       <button class="tab-btn active" data-tab="overview">Overview</button>
       <button class="tab-btn" data-tab="teachers">Teachers</button>
@@ -21,7 +21,6 @@
   </div>
 
   <div class="content">
-    <!-- Overview Tab -->
     <div id="overview" class="tab-content active">
       <h2>Today’s Summary</h2>
       <ul>
@@ -29,10 +28,8 @@
         <li>Total Absent: <span id="absentCount">--</span></li>
         <li>Substitutions: <span id="subsCount">--</span></li>
       </ul>
-      <canvas id="attendanceChart" width="400" height="200"></canvas>
     </div>
 
-    <!-- Teachers Tab -->
     <div id="teachers" class="tab-content">
       <h2>Add Teachers</h2>
       <form id="addTeacherForm">
@@ -60,43 +57,21 @@
       </table>
     </div>
 
-    <!-- Attendance Tab -->
     <div id="attendance" class="tab-content">
       <h2>Attendance Records</h2>
-      <div class="attendance-filter">
-        <label for="dateFilter">Select Date:</label>
-        <input type="date" id="dateFilter" max="">
-      </div>
-      <table class="attendance-table">
-        <thead>
-          <tr>
-            <th>Teacher</th>
-            <th>Status</th>
-            <th>Punch In</th>
-            <th>Punch Out</th>
-          </tr>
-        </thead>
-        <tbody id="attendanceTable">
-          <!-- Dynamic Attendance Records -->
-        </tbody>
+      <input type="date" id="dateFilter" max="">
+      <table>
+        <thead><tr><th>Teacher</th><th>Status</th><th>Punch In</th><th>Punch Out</th></tr></thead>
+        <tbody id="attendanceTable"></tbody>
       </table>
     </div>
 
-    <!-- Substitution Tab -->
     <div id="substitution" class="tab-content">
       <h2>Substitution Assignments</h2>
       <button onclick="assignSubstitutes()">Auto Assign Substitutes</button>
       <table>
-        <thead>
-          <tr>
-            <th>Absent Teacher</th>
-            <th>Class</th>
-            <th>Substitute</th>
-          </tr>
-        </thead>
-        <tbody id="substitutionTableBody">
-          <!-- Substitutes will be shown here -->
-        </tbody>
+        <thead><tr><th>Absent Teacher</th><th>Class</th><th>Substitute</th></tr></thead>
+        <tbody id="substitutionTableBody"></tbody>
       </table>
     </div>
   </div>
