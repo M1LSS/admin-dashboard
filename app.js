@@ -1,130 +1,6 @@
-// app.js
-
 document.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".tab-btn");
-  const tabs = document.querySelectorAll(".tab-content");
-
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tabId = btn.getAttribute("data-tab");
-
-      buttons.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      tabs.forEach(tab => {
-        tab.classList.remove("active");
-        if (tab.id === tabId) {
-          tab.classList.add("active");
-        }
-      });
-    });
-  });
-
-  document.querySelector(".tab-btn.active")?.click();
-
-  const today = new Date();
-  const formatDate = (date) => {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const defaultDate = formatDate(today);
-  const dateInput = document.getElementById("dateFilter");
-  if (dateInput) {
-    dateInput.value = defaultDate;
-    dateInput.addEventListener("change", () => {
-      loadAttendance();
-      loadSubstitutions();
-    });
-  }
-
-  loadAttendance();
   loadTeachers();
 });
-
-function loadAttendance() {
-  const input = document.getElementById("dateFilter").value;
-  const formattedDate = input;
-
-  const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = "";
-
-  db.ref("teachers").once("value", teachersSnapshot => {
-    const teacherMap = {};
-    teachersSnapshot.forEach(child => {
-      teacherMap[child.key] = child.val().name;
-    });
-
-    db.ref("attendance/" + formattedDate).once("value", snapshot => {
-      if (!snapshot.exists()) {
-        tbody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
-        return;
-      }
-
-      const displayedUIDs = new Set();
-      snapshot.forEach(child => {
-        const d = child.val();
-        const uid = d.uid || child.key;
-
-        if (displayedUIDs.has(uid)) return;
-        displayedUIDs.add(uid);
-
-        const teacherName = teacherMap[uid] || uid;
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${teacherName}</td>
-          <td>${d.status || "Absent"}</td>
-          <td>${d.punch_in || "-"}</td>
-          <td>${d.punch_out || "-"}</td>`;
-        tbody.appendChild(row);
-      });
-    });
-  });
-}
-
-function assignSubstitutes() {
-  const date = document.getElementById("dateFilter").value;
-
-  db.ref("attendance/" + date).once("value", snapshot => {
-    const available = [], absent = [];
-
-    snapshot.forEach(child => {
-      const d = child.val();
-      if ((d.status || '').toLowerCase() === "present") available.push(d.uid);
-      else absent.push(child.key);
-    });
-
-    absent.forEach((absentKey, i) => {
-      const sub = available[i % available.length];
-      db.ref(`attendance/${date}/${absentKey}/substituted_by`).set(sub);
-    });
-
-    alert("✅ Substitutes assigned.");
-    loadSubstitutions();
-  });
-}
-
-function loadSubstitutions() {
-  const date = document.getElementById("dateFilter").value;
-
-  const table = document.getElementById("substitutionTableBody");
-  table.innerHTML = "";
-
-  db.ref("attendance/" + date).once("value", snapshot => {
-    snapshot.forEach(child => {
-      const d = child.val();
-      if ((d.status || '').toLowerCase() === "absent" && d.substituted_by) {
-        table.innerHTML += `<tr>
-          <td>${d.name || d.uid}</td>
-          <td>${d.class || "-"}</td>
-          <td>${d.substituted_by}</td>
-        </tr>`;
-      }
-    });
-  });
-}
 
 function loadTeachers() {
   const table = document.getElementById("teachersTable").querySelector("tbody");
@@ -140,8 +16,54 @@ function loadTeachers() {
         <td>${data.subject}</td>
         <td>${data.class}</td>
         <td>${data.phone}</td>
+        <td>
+          <button onclick="openEditModal('${child.key}', '${data.name}', '${data.subject}', '${data.class}', '${data.phone}')">Edit</button>
+          <button onclick="confirmDelete('${child.key}')">Delete</button>
+        </td>
       `;
       table.appendChild(row);
     });
   });
+}
+
+function openEditModal(uid, name, subject, className, phone) {
+  document.getElementById("editUid").value = uid;
+  document.getElementById("editName").value = name;
+  document.getElementById("editSubject").value = subject;
+  document.getElementById("editClass").value = className;
+  document.getElementById("editPhone").value = phone;
+  document.getElementById("editModal").style.display = "block";
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").style.display = "none";
+}
+
+document.getElementById("editForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const uid = document.getElementById("editUid").value;
+  const name = document.getElementById("editName").value;
+  const subject = document.getElementById("editSubject").value;
+  const className = document.getElementById("editClass").value;
+  const phone = document.getElementById("editPhone").value;
+
+  db.ref("teachers/" + uid).update({
+    name,
+    subject,
+    class: className,
+    phone
+  }).then(() => {
+    alert("✅ Teacher info updated.");
+    closeEditModal();
+    loadTeachers();
+  });
+});
+
+function confirmDelete(uid) {
+  if (confirm("Are you sure you want to delete this teacher?")) {
+    db.ref("teachers/" + uid).remove().then(() => {
+      alert("🗑️ Teacher deleted.");
+      loadTeachers();
+    });
+  }
 }
