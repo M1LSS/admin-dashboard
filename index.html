@@ -63,20 +63,26 @@
 
     <!-- Attendance Tab -->
     <div id="attendance" class="tab-content">
-      <h2>Attendance Records</h2>
-      <input type="date" id="dateFilter" onchange="loadAttendance()" max="">
-      <table>
-        <thead>
-          <tr>
-            <th>UID</th>
-            <th>Status</th>
-            <th>Punch In</th>
-            <th>Punch Out</th>
-          </tr>
-        </thead>
-        <tbody id="attendanceTable"></tbody>
-      </table>
-    </div>
+  <h2>Attendance Records</h2>
+  <div class="attendance-filter">
+    <label for="dateFilter">Select Date:</label>
+    <input type="date" id="dateFilter" max="">
+  </div>
+  <table class="attendance-table">
+    <thead>
+      <tr>
+        <th>Teacher</th>
+        <th>Status</th>
+        <th>Punch In</th>
+        <th>Punch Out</th>
+      </tr>
+    </thead>
+    <tbody id="attendanceTable">
+      <!-- Attendance records will be inserted here dynamically -->
+    </tbody>
+  </table>
+</div>
+
 
     <!-- Substitution Tab -->
     <div id="substitution" class="tab-content">
