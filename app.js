@@ -1,57 +1,80 @@
-const db = firebase.database();
+// Load teachers from Firebase
+function loadTeachers() {
+  const tbody = document.querySelector('#teachersTable tbody');
+  tbody.innerHTML = '';
 
-function $(id) {
-  return document.getElementById(id);
+  const teachersRef = firebase.database().ref("teachers");
+  teachersRef.once("value", (snapshot) => {
+    snapshot.forEach((childSnapshot) => {
+      const uid = childSnapshot.key;
+      const teacher = childSnapshot.val();
+
+      const row = document.createElement("tr");
+
+      row.innerHTML = `
+        <td>${uid}</td>
+        <td>${teacher.name || '-'}</td>
+        <td>${teacher.subject || '-'}</td>
+        <td>${teacher.class || '-'}</td>
+        <td>${teacher.phone || '-'}</td>
+        <td>
+          <button onclick="editTeacher('${uid}')">Edit</button>
+          <button onclick="deleteTeacher('${uid}')">Delete</button>
+        </td>
+      `;
+
+      tbody.appendChild(row);
+    });
+  });
 }
 
+// Handle tab switching and call loadTeachers when "Teachers" tab is opened
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
     btn.classList.add("active");
-    $(btn.dataset.tab).classList.add("active");
+
+    const tab = document.getElementById(btn.dataset.tab);
+    if (tab) tab.classList.add("active");
+
+    if (btn.dataset.tab === "teachers") {
+      loadTeachers();
+    }
   });
 });
 
-// Additional logic to be added for teacher management, attendance, and substitution
+// Handle adding a new teacher
+document.getElementById("addTeacherForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const uid = document.getElementById("uid").value.trim();
+  const name = document.getElementById("name").value.trim();
+  const subject = document.getElementById("subject").value.trim();
+  const cls = document.getElementById("class").value.trim();
+  const phone = document.getElementById("phone").value.trim();
 
+  if (!uid || !name) return;
 
-// === Substitution Logic ===
-function assignSubstitutes() {
-  const date = new Date().toISOString().split('T')[0];
-  firebase.database().ref('teachers').once('value', snapshot => {
-    const teachers = snapshot.val();
-    if (!teachers) return;
-
-    const present = [];
-    const absent = [];
-
-    for (const uid in teachers) {
-      const teacher = teachers[uid];
-      firebase.database().ref(`attendance/${date}/${uid}/status`).once('value', statusSnap => {
-        const status = statusSnap.val();
-        if (status === 'present') present.push({ uid, ...teacher });
-        else absent.push({ uid, ...teacher });
-
-        // Once all teachers are classified
-        if (present.length + absent.length === Object.keys(teachers).length) {
-          const table = document.getElementById("substitutionTableBody");
-          table.innerHTML = "";
-
-          absent.forEach((absentTeacher, i) => {
-            const substitute = present[i % present.length];
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${absentTeacher.name}</td>
-              <td>${absentTeacher.class}</td>
-              <td>${substitute.name}</td>
-            `;
-            table.appendChild(row);
-          });
-
-          document.getElementById("subsCount").innerText = absent.length;
-        }
-      });
-    }
+  firebase.database().ref("teachers/" + uid).set({
+    name: name,
+    subject: subject,
+    class: cls,
+    phone: phone
+  }).then(() => {
+    loadTeachers();
+    document.getElementById("addTeacherForm").reset();
   });
+});
+
+// Optional: placeholder functions for edit/delete
+function editTeacher(uid) {
+  alert("Edit function not implemented for UID: " + uid);
+}
+
+function deleteTeacher(uid) {
+  if (confirm("Delete teacher with UID: " + uid + "?")) {
+    firebase.database().ref("teachers/" + uid).remove().then(() => {
+      loadTeachers();
+    });
+  }
 }
