@@ -1,117 +1,96 @@
+// app.js
+
 const db = firebase.database();
-const teacherTableBody = document.querySelector("#teachersTable tbody");
-const attendanceTableBody = document.querySelector("#attendanceTable");
-const dateFilter = document.getElementById("dateFilter");
 
-function loadTeachers() {
-  db.ref("teachers").once("value", snapshot => {
-    teacherTableBody.innerHTML = "";
-    const data = snapshot.val();
-
-    if (data) {
-      Object.keys(data).forEach(uid => {
-        const teacher = data[uid];
-        const row = document.createElement("tr");
-
-        row.innerHTML = `
-          <td>${uid}</td>
-          <td>${teacher.name || ""}</td>
-          <td>${teacher.subject || ""}</td>
-          <td>${teacher.class || ""}</td>
-          <td>${teacher.phone || ""}</td>
-          <td>
-            <button onclick="editTeacher('${uid}')">Edit</button>
-            <button onclick="deleteTeacher('${uid}')">Delete</button>
-          </td>
-        `;
-        teacherTableBody.appendChild(row);
-      });
-    } else {
-      teacherTableBody.innerHTML = "<tr><td colspan='6'>No teachers found.</td></tr>";
-    }
-  });
-}
-
-function addTeacher(event) {
-  event.preventDefault();
-
-  const uid = document.getElementById("uid").value.trim();
-  const name = document.getElementById("name").value.trim();
-  const subject = document.getElementById("subject").value.trim();
-  const teacherClass = document.getElementById("class").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-
-  if (uid && name && subject && teacherClass && phone) {
-    db.ref("teachers/" + uid).set({
-      name,
-      subject,
-      class: teacherClass,
-      phone
-    }, (error) => {
-      if (!error) {
-        alert("Teacher added!");
-        loadTeachers();
-        document.getElementById("addTeacherForm").reset();
-      } else {
-        alert("Error adding teacher.");
-      }
-    });
-  }
-}
-
-function deleteTeacher(uid) {
-  if (confirm("Are you sure to delete teacher " + uid + "?")) {
-    db.ref("teachers/" + uid).remove()
-      .then(() => loadTeachers());
-  }
-}
-
-function loadAttendance(dateStr) {
-  attendanceTableBody.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>";
-
-  db.ref("attendance/" + dateStr).once("value", snapshot => {
-    attendanceTableBody.innerHTML = "";
-    const data = snapshot.val();
-
-    if (data) {
-      Object.keys(data).forEach(uid => {
-        db.ref("teachers/" + uid).once("value", teacherSnap => {
-          const teacher = teacherSnap.val();
-          const record = data[uid];
-
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${teacher ? teacher.name : uid}</td>
-            <td>${record.status || "--"}</td>
-            <td>${record.punch_in || "--"}</td>
-            <td>${record.punch_out || "--"}</td>
-          `;
-          attendanceTableBody.appendChild(row);
-        });
-      });
-    } else {
-      attendanceTableBody.innerHTML = "<tr><td colspan='4'>No attendance data found.</td></tr>";
-    }
-  });
-}
-
-document.getElementById("addTeacherForm").addEventListener("submit", addTeacher);
-document.querySelectorAll(".tab-btn").forEach(btn => {
+// TAB NAVIGATION
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+tabButtons.forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    tabButtons.forEach(b => b.classList.remove("active"));
+    tabContents.forEach(c => c.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(btn.dataset.tab).classList.add("active");
   });
 });
 
-dateFilter.addEventListener("change", () => {
-  if (dateFilter.value) {
-    loadAttendance(dateFilter.value);
-  }
+// FETCH TEACHERS
+function fetchTeachers() {
+  const tbody = document.querySelector("#teachersTable tbody");
+  tbody.innerHTML = "";
+
+  db.ref("teachers").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const t = child.val();
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${child.key}</td>
+        <td>${t.name}</td>
+        <td>${t.subject}</td>
+        <td>${t.class}</td>
+        <td>${t.phone}</td>
+        <td>
+          <button onclick="editTeacher('${child.key}')">Edit</button>
+          <button onclick="deleteTeacher('${child.key}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+}
+
+// ADD TEACHER
+const addTeacherForm = document.getElementById("addTeacherForm");
+addTeacherForm.addEventListener("submit", e => {
+  e.preventDefault();
+  const uid = addTeacherForm.uid.value;
+  const name = addTeacherForm.name.value;
+  const subject = addTeacherForm.subject.value;
+  const tclass = addTeacherForm.class.value;
+  const phone = addTeacherForm.phone.value;
+
+  db.ref("teachers/" + uid).set({ name, subject, class: tclass, phone }, () => {
+    addTeacherForm.reset();
+    fetchTeachers();
+  });
 });
 
-loadTeachers();
-const today = new Date().toISOString().split("T")[0];
-dateFilter.value = today;
-loadAttendance(today);
+// DELETE TEACHER
+function deleteTeacher(uid) {
+  if (confirm("Delete this teacher?")) {
+    db.ref("teachers/" + uid).remove(fetchTeachers);
+  }
+}
+
+// FETCH ATTENDANCE
+function fetchAttendance(date = new Date().toISOString().split("T")[0]) {
+  const tbody = document.getElementById("attendanceTable");
+  tbody.innerHTML = "";
+
+  db.ref("attendance/" + date).once("value", snapshot => {
+    snapshot.forEach(child => {
+      const record = child.val();
+      db.ref("teachers/" + child.key + "/name").once("value", snap => {
+        const name = snap.val() || child.key;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${record.status || "-"}</td>
+          <td>${record.punch_in || "-"}</td>
+          <td>${record.punch_out || "-"}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    });
+  });
+}
+
+document.getElementById("dateFilter").addEventListener("change", e => {
+  fetchAttendance(e.target.value);
+});
+
+// INITIAL LOAD
+window.onload = () => {
+  fetchTeachers();
+  fetchAttendance();
+};
