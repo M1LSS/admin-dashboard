@@ -1,96 +1,156 @@
-// app.js
-
 const db = firebase.database();
 
-// TAB NAVIGATION
-const tabButtons = document.querySelectorAll(".tab-btn");
-const tabContents = document.querySelectorAll(".tab-content");
-tabButtons.forEach(btn => {
+// Tab navigation
+document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    tabButtons.forEach(b => b.classList.remove("active"));
-    tabContents.forEach(c => c.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(tc => tc.classList.remove("active"));
+
     btn.classList.add("active");
     document.getElementById(btn.dataset.tab).classList.add("active");
+
+    if (btn.dataset.tab === "teachers") loadTeachers();
+    if (btn.dataset.tab === "overview") loadOverview();
+    if (btn.dataset.tab === "attendance") loadAttendance();
   });
 });
 
-// FETCH TEACHERS
-function fetchTeachers() {
-  const tbody = document.querySelector("#teachersTable tbody");
-  tbody.innerHTML = "";
+// Add teacher
+document.getElementById("addTeacherForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const uid = document.getElementById("uid").value;
+  const name = document.getElementById("name").value;
+  const subject = document.getElementById("subject").value;
+  const class_ = document.getElementById("class").value;
+  const phone = document.getElementById("phone").value;
+
+  db.ref("teachers/" + uid).set({
+    name, subject, class: class_, phone
+  }).then(() => {
+    alert("Teacher added");
+    document.getElementById("addTeacherForm").reset();
+    loadTeachers();
+  });
+});
+
+// Load teachers
+function loadTeachers() {
+  const tableBody = document.querySelector("#teachersTable tbody");
+  tableBody.innerHTML = "";
 
   db.ref("teachers").once("value", snapshot => {
-    snapshot.forEach(child => {
-      const t = child.val();
+    const teachers = snapshot.val();
+    if (!teachers) return;
+
+    Object.entries(teachers).forEach(([uid, data]) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${child.key}</td>
-        <td>${t.name}</td>
-        <td>${t.subject}</td>
-        <td>${t.class}</td>
-        <td>${t.phone}</td>
+        <td>${uid}</td>
+        <td>${data.name}</td>
+        <td>${data.subject}</td>
+        <td>${data.class}</td>
+        <td>${data.phone}</td>
         <td>
-          <button onclick="editTeacher('${child.key}')">Edit</button>
-          <button onclick="deleteTeacher('${child.key}')">Delete</button>
+          <button onclick="deleteTeacher('${uid}')">Delete</button>
         </td>
       `;
-      tbody.appendChild(row);
+      tableBody.appendChild(row);
     });
   });
 }
 
-// ADD TEACHER
-const addTeacherForm = document.getElementById("addTeacherForm");
-addTeacherForm.addEventListener("submit", e => {
-  e.preventDefault();
-  const uid = addTeacherForm.uid.value;
-  const name = addTeacherForm.name.value;
-  const subject = addTeacherForm.subject.value;
-  const tclass = addTeacherForm.class.value;
-  const phone = addTeacherForm.phone.value;
-
-  db.ref("teachers/" + uid).set({ name, subject, class: tclass, phone }, () => {
-    addTeacherForm.reset();
-    fetchTeachers();
-  });
-});
-
-// DELETE TEACHER
+// Delete teacher
 function deleteTeacher(uid) {
   if (confirm("Delete this teacher?")) {
-    db.ref("teachers/" + uid).remove(fetchTeachers);
+    db.ref("teachers/" + uid).remove().then(loadTeachers);
   }
 }
 
-// FETCH ATTENDANCE
-function fetchAttendance(date = new Date().toISOString().split("T")[0]) {
-  const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = "";
+// Overview tab
+function loadOverview() {
+  const today = new Date().toISOString().split("T")[0];
 
-  db.ref("attendance/" + date).once("value", snapshot => {
-    snapshot.forEach(child => {
-      const record = child.val();
-      db.ref("teachers/" + child.key + "/name").once("value", snap => {
-        const name = snap.val() || child.key;
+  db.ref("attendance/" + today).once("value", snapshot => {
+    const data = snapshot.val() || {};
+    let present = 0, absent = 0, subs = 0;
+
+    Object.values(data).forEach(record => {
+      if (record.status === "present" || record.status === "late") present++;
+      else absent++;
+    });
+
+    // Example substitution count (mock logic)
+    subs = Math.floor(absent / 2);
+
+    document.getElementById("presentCount").textContent = present;
+    document.getElementById("absentCount").textContent = absent;
+    document.getElementById("subsCount").textContent = subs;
+  });
+}
+
+// Attendance tab
+document.getElementById("dateFilter").addEventListener("change", loadAttendance);
+
+function loadAttendance() {
+  const selectedDate = document.getElementById("dateFilter").value;
+  if (!selectedDate) return;
+
+  const attendanceTable = document.getElementById("attendanceTable");
+  attendanceTable.innerHTML = "";
+
+  db.ref(`attendance/${selectedDate}`).once("value").then(snapshot => {
+    const attendanceData = snapshot.val();
+    if (!attendanceData) return;
+
+    db.ref("teachers").once("value").then(teachersSnap => {
+      const teachers = teachersSnap.val();
+
+      Object.entries(attendanceData).forEach(([uid, record]) => {
+        const teacher = teachers[uid] || {};
+        const name = teacher.name || uid;
+
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${name}</td>
-          <td>${record.status || "-"}</td>
-          <td>${record.punch_in || "-"}</td>
-          <td>${record.punch_out || "-"}</td>
+          <td>${record.status || 'N/A'}</td>
+          <td>${record.punch_in || '-'}</td>
+          <td>${record.punch_out || '-'}</td>
         `;
-        tbody.appendChild(row);
+        attendanceTable.appendChild(row);
       });
     });
   });
 }
 
-document.getElementById("dateFilter").addEventListener("change", e => {
-  fetchAttendance(e.target.value);
-});
+// Substitution logic
+function assignSubstitutes() {
+  const today = new Date().toISOString().split("T")[0];
 
-// INITIAL LOAD
-window.onload = () => {
-  fetchTeachers();
-  fetchAttendance();
-};
+  Promise.all([
+    db.ref(`attendance/${today}`).once("value"),
+    db.ref("teachers").once("value")
+  ]).then(([attendanceSnap, teachersSnap]) => {
+    const attendance = attendanceSnap.val() || {};
+    const teachers = teachersSnap.val() || {};
+
+    const present = Object.keys(attendance).filter(uid => attendance[uid].status === "present" || attendance[uid].status === "late");
+    const absent = Object.keys(attendance).filter(uid => attendance[uid].status === "absent");
+
+    const tableBody = document.getElementById("substitutionTableBody");
+    tableBody.innerHTML = "";
+
+    absent.forEach((absentUid, index) => {
+      const absentTeacher = teachers[absentUid];
+      const substituteUid = present[index % present.length];
+      const substitute = teachers[substituteUid];
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${absentTeacher?.name || absentUid}</td>
+        <td>${absentTeacher?.class || '-'}</td>
+        <td>${substitute?.name || substituteUid}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  });
+}
