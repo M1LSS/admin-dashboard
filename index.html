@@ -1,48 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Teacher Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script defer src="app.js"></script>
-  <style>
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      width: 300px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Teacher Attendance Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="nav">
-    <h1>📊 Smart Teacher Attendance Dashboard</h1>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="teachers">Teachers</button>
-      <button class="tab-btn" data-tab="attendance">Attendance</button>
-      <button class="tab-btn" data-tab="substitution">Substitution</button>
-    </div>
-  </div>
+  <header>
+    <img src="logo.png" alt="Logo" style="height: 40px; vertical-align: middle;">
+    <h1>Smart Teacher Attendance Dashboard</h1>
+  </header>
 
-  <div class="content">
+  <nav>
+    <button class="tab-button active" data-tab="overviewTab">Overview</button>
+    <button class="tab-button" data-tab="teachersTab">Teachers</button>
+    <button class="tab-button" data-tab="attendanceTab">Attendance</button>
+    <button class="tab-button" data-tab="substitutionTab">Substitution</button>
+  </nav>
+
+  <main>
+    <!-- Overview Tab -->
+    <div id="overviewTab" class="tab-content" style="display: block;">
+      <h2>Welcome to the Dashboard</h2>
+      <p>Overview of teacher attendance system.</p>
+    </div>
+
     <!-- Teachers Tab -->
-    <div id="teachers" class="tab-content active">
+    <div id="teachersTab" class="tab-content">
       <h2>Manage Teachers</h2>
-      <table id="teachersTable">
+      <table>
         <thead>
           <tr>
             <th>UID</th>
@@ -53,25 +40,25 @@
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="teachersTableBody">
+          <!-- Rows will be injected by JS -->
+        </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- Edit Modal -->
-  <div id="editModal" class="modal">
-    <div class="modal-content">
-      <h3>Edit Teacher</h3>
-      <form id="editTeacherForm">
-        <input type="hidden" id="editUid">
-        <input type="text" id="editName" placeholder="Name" required><br><br>
-        <input type="text" id="editSubject" placeholder="Subject" required><br><br>
-        <input type="text" id="editClass" placeholder="Class" required><br><br>
-        <input type="text" id="editPhone" placeholder="Phone" required><br><br>
-        <button type="submit">Update</button>
-        <button type="button" onclick="closeEditModal()">Cancel</button>
-      </form>
+    <!-- Attendance Tab -->
+    <div id="attendanceTab" class="tab-content">
+      <h2>Attendance Records</h2>
+      <p>Coming soon...</p>
     </div>
-  </div>
+
+    <!-- Substitution Tab -->
+    <div id="substitutionTab" class="tab-content">
+      <h2>Substitution Management</h2>
+      <p>Coming soon...</p>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
