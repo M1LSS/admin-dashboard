@@ -1,0 +1,45 @@
+body {
+  font-family: Arial;
+  background: #f7f7f7;
+  margin: 0;
+  padding: 0;
+}
+.nav {
+  background: #223344;
+  color: white;
+  padding: 10px;
+}
+.tabs button {
+  margin: 5px;
+  padding: 10px;
+  background: #2e3b4e;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+.tabs button.active {
+  background: #00c7a2;
+}
+.tab-content {
+  display: none;
+  padding: 20px;
+}
+.tab-content.active {
+  display: block;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: white;
+}
+table, th, td {
+  border: 1px solid #ccc;
+}
+th, td {
+  padding: 10px;
+  text-align: left;
+}
+form input, form button {
+  margin: 5px;
+  padding: 8px;
+}
