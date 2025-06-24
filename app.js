@@ -1,9 +1,11 @@
 const db = firebase.database();
 const teacherTableBody = document.querySelector("#teachersTable tbody");
+const attendanceTableBody = document.querySelector("#attendanceTable");
+const dateFilter = document.getElementById("dateFilter");
 
 function loadTeachers() {
   db.ref("teachers").once("value", snapshot => {
-    teacherTableBody.innerHTML = ""; // Clear existing rows
+    teacherTableBody.innerHTML = "";
     const data = snapshot.val();
 
     if (data) {
@@ -64,9 +66,36 @@ function deleteTeacher(uid) {
   }
 }
 
-document.getElementById("addTeacherForm").addEventListener("submit", addTeacher);
+function loadAttendance(dateStr) {
+  attendanceTableBody.innerHTML = "<tr><td colspan='4'>Loading...</td></tr>";
 
-// Tabs
+  db.ref("attendance/" + dateStr).once("value", snapshot => {
+    attendanceTableBody.innerHTML = "";
+    const data = snapshot.val();
+
+    if (data) {
+      Object.keys(data).forEach(uid => {
+        db.ref("teachers/" + uid).once("value", teacherSnap => {
+          const teacher = teacherSnap.val();
+          const record = data[uid];
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${teacher ? teacher.name : uid}</td>
+            <td>${record.status || "--"}</td>
+            <td>${record.punch_in || "--"}</td>
+            <td>${record.punch_out || "--"}</td>
+          `;
+          attendanceTableBody.appendChild(row);
+        });
+      });
+    } else {
+      attendanceTableBody.innerHTML = "<tr><td colspan='4'>No attendance data found.</td></tr>";
+    }
+  });
+}
+
+document.getElementById("addTeacherForm").addEventListener("submit", addTeacher);
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -76,4 +105,13 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
   });
 });
 
-loadTeachers(); // Initial call
+dateFilter.addEventListener("change", () => {
+  if (dateFilter.value) {
+    loadAttendance(dateFilter.value);
+  }
+});
+
+loadTeachers();
+const today = new Date().toISOString().split("T")[0];
+dateFilter.value = today;
+loadAttendance(today);
