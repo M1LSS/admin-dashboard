@@ -178,4 +178,8 @@ function fetchSummary() {
     document.getElementById("substitution-count").innerText = substitutions;
   });
 }
+window.onload = () => {
+  fetchSummary();
+};
+
 
