@@ -23,20 +23,21 @@
   <div class="content">
     <div id="overview" class="tab-content active">
   <h2>Today’s Summary</h2>
-  <div class="card-container">
-    <div class="card">
-      <h3>Present</h3>
-      <p id="presentCount">--</p>
-    </div>
-    <div class="card">
-      <h3>Absent</h3>
-      <p id="absentCount">--</p>
-    </div>
-    <div class="card">
-      <h3>Substitutions</h3>
-      <p id="subsCount">--</p>
-    </div>
+      <button onclick="fetchSummary()" class="refresh-btn">🔄 Refresh</button>
+  <div class="summary-container">
+  <div class="summary-box">
+    <h3>Present</h3>
+    <p id="present-count">--</p>
   </div>
+  <div class="summary-box">
+    <h3>Absent</h3>
+    <p id="absent-count">--</p>
+  </div>
+  <div class="summary-box">
+    <h3>Substitutions</h3>
+    <p id="substitution-count">--</p>
+  </div>
+</div>
 </div>
 
 
