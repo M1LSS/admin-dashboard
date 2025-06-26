@@ -1,159 +1,18 @@
-const db = firebase.database();
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
+};
 
-// Tab navigation
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(tc => tc.classList.remove("active"));
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 
-    btn.classList.add("active");
-    document.getElementById(btn.dataset.tab).classList.add("active");
-
-    if (btn.dataset.tab === "teachers") loadTeachers();
-    if (btn.dataset.tab === "overview") loadOverview();
-    if (btn.dataset.tab === "attendance") loadAttendance();
-  });
-});
-
-// Add teacher
-document.getElementById("addTeacherForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const uid = document.getElementById("uid").value;
-  const name = document.getElementById("name").value;
-  const subject = document.getElementById("subject").value;
-  const class_ = document.getElementById("class").value;
-  const phone = document.getElementById("phone").value;
-
-  db.ref("teachers/" + uid).set({
-    name, subject, class: class_, phone
-  }).then(() => {
-    alert("Teacher added");
-    document.getElementById("addTeacherForm").reset();
-    loadTeachers();
-  });
-});
-
-// Load teachers
-function loadTeachers() {
-  const tableBody = document.querySelector("#teachersTable tbody");
-  tableBody.innerHTML = "";
-
-  db.ref("teachers").once("value", snapshot => {
-    const teachers = snapshot.val();
-    if (!teachers) return;
-
-    Object.entries(teachers).forEach(([uid, data]) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${uid}</td>
-        <td>${data.name}</td>
-        <td>${data.subject}</td>
-        <td>${data.class}</td>
-        <td>${data.phone}</td>
-        <td>
-          <button onclick="deleteTeacher('${uid}')">Delete</button>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
-  });
-}
-
-// Delete teacher
-function deleteTeacher(uid) {
-  if (confirm("Delete this teacher?")) {
-    db.ref("teachers/" + uid).remove().then(loadTeachers);
-  }
-}
-
-// Overview tab
-function loadOverview() {
-  const today = new Date().toISOString().split("T")[0];
-
-  db.ref("attendance/" + today).once("value", snapshot => {
-    const data = snapshot.val() || {};
-    let present = 0, absent = 0, subs = 0;
-
-    Object.values(data).forEach(record => {
-      if (record.status === "present" || record.status === "late") present++;
-      else absent++;
-    });
-
-    // Example substitution count (mock logic)
-    subs = Math.floor(absent / 2);
-
-    document.getElementById("presentCount").textContent = present;
-    document.getElementById("absentCount").textContent = absent;
-    document.getElementById("subsCount").textContent = subs;
-  });
-}
-
-// Attendance tab
-document.getElementById("dateFilter").addEventListener("change", loadAttendance);
-
-function loadAttendance() {
-  const selectedDate = document.getElementById("dateFilter").value;
-  if (!selectedDate) return;
-
-  const attendanceTable = document.getElementById("attendanceTable");
-  attendanceTable.innerHTML = "";
-
-  db.ref(`attendance/${selectedDate}`).once("value").then(snapshot => {
-    const attendanceData = snapshot.val();
-    if (!attendanceData) return;
-
-    db.ref("teachers").once("value").then(teachersSnap => {
-      const teachers = teachersSnap.val();
-
-      Object.entries(attendanceData).forEach(([uid, record]) => {
-        const teacher = teachers[uid] || {};
-        const name = teacher.name || uid;
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${name}</td>
-          <td>${record.status || 'N/A'}</td>
-          <td>${record.punch_in || '-'}</td>
-          <td>${record.punch_out || '-'}</td>
-        `;
-        attendanceTable.appendChild(row);
-      });
-    });
-  });
-}
-
-// Substitution logic
-function assignSubstitutes() {
-  const today = new Date().toISOString().split("T")[0];
-
-  Promise.all([
-    db.ref(`attendance/${today}`).once("value"),
-    db.ref("teachers").once("value")
-  ]).then(([attendanceSnap, teachersSnap]) => {
-    const attendance = attendanceSnap.val() || {};
-    const teachers = teachersSnap.val() || {};
-
-    const present = Object.keys(attendance).filter(uid => attendance[uid].status === "present" || attendance[uid].status === "late");
-    const absent = Object.keys(attendance).filter(uid => attendance[uid].status === "absent");
-
-    const tableBody = document.getElementById("substitutionTableBody");
-    tableBody.innerHTML = "";
-
-    absent.forEach((absentUid, index) => {
-      const absentTeacher = teachers[absentUid];
-      const substituteUid = present[index % present.length];
-      const substitute = teachers[substituteUid];
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${absentTeacher?.name || absentUid}</td>
-        <td>${absentTeacher?.class || '-'}</td>
-        <td>${substitute?.name || substituteUid}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  });
-}
+// Fetch today's summary data
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
   const attendanceRef = database.ref("attendance/" + today);
@@ -163,13 +22,15 @@ function fetchSummary() {
 
     snapshot.forEach(child => {
       const data = child.val();
-      if (typeof data !== "object" || !data.status) return;
+      const key = child.key;
+
+      // Skip if it's not an attendance record
+      if (typeof data !== "object" || !data.status || key.length !== 8) return;
 
       if (data.status === "present") present++;
-      else if (data.status === "absent") absent++;
-      else if (data.status === "late") absent++;
+      else if (data.status === "absent" || data.status === "late") absent++;
 
-      // if you have substitution field
+      // Optional: check if substitution assigned
       if (data.substitution) substitutions++;
     });
 
@@ -178,8 +39,103 @@ function fetchSummary() {
     document.getElementById("substitution-count").innerText = substitutions;
   });
 }
+
+// Run on page load
 window.onload = () => {
-  fetchSummary();
+  const currentPage = window.location.pathname;
+
+  if (currentPage.includes("overview.html")) {
+    fetchSummary();
+  }
+
+  if (currentPage.includes("teachers.html")) {
+    loadTeachers();
+  }
+
+  if (currentPage.includes("attendance.html")) {
+    loadAttendance();
+  }
+
+  if (currentPage.includes("substitution.html")) {
+    loadSubstitutions();
+  }
 };
 
+// --- Add any other functions for Teachers, Attendance, Substitution below ---
 
+function loadTeachers() {
+  const tableBody = document.getElementById("teacher-table-body");
+  tableBody.innerHTML = "";
+
+  database.ref("teachers").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const teacher = child.val();
+
+      const row = `
+        <tr>
+          <td>${uid}</td>
+          <td>${teacher.name || ""}</td>
+          <td>${teacher.subject || ""}</td>
+          <td>${teacher.class || ""}</td>
+          <td>${teacher.phone || ""}</td>
+          <td>
+            <!-- Action buttons can go here -->
+          </td>
+        </tr>
+      `;
+      tableBody.innerHTML += row;
+    });
+  });
+}
+
+function loadAttendance() {
+  const today = new Date().toISOString().split('T')[0];
+  const tableBody = document.getElementById("attendance-table-body");
+  tableBody.innerHTML = "";
+
+  database.ref("attendance/" + today).once("value", snapshot => {
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const record = child.val();
+
+      if (!record.status) return;
+
+      database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
+        const name = nameSnap.val() || uid;
+
+        const row = `
+          <tr>
+            <td>${uid}</td>
+            <td>${name}</td>
+            <td>${record.status || ""}</td>
+            <td>${record.punch_in || "-"}</td>
+            <td>${record.punch_out || "-"}</td>
+          </tr>
+        `;
+        tableBody.innerHTML += row;
+      });
+    });
+  });
+}
+
+function loadSubstitutions() {
+  const tableBody = document.getElementById("substitution-table-body");
+  tableBody.innerHTML = "";
+
+  // You can replace this logic with actual substitution assignments from Firebase
+  database.ref("substitutions").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const assignment = child.val();
+      const row = `
+        <tr>
+          <td>${assignment.absent_teacher || "-"}</td>
+          <td>${assignment.substitute_teacher || "-"}</td>
+          <td>${assignment.class || "-"}</td>
+          <td>${assignment.time || "-"}</td>
+        </tr>
+      `;
+      tableBody.innerHTML += row;
+    });
+  });
+}
