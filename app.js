@@ -154,3 +154,28 @@ function assignSubstitutes() {
     });
   });
 }
+function fetchSummary() {
+  const today = new Date().toISOString().split('T')[0];
+  const attendanceRef = database.ref("attendance/" + today);
+
+  attendanceRef.once("value", snapshot => {
+    let present = 0, absent = 0, substitutions = 0;
+
+    snapshot.forEach(child => {
+      const data = child.val();
+      if (typeof data !== "object" || !data.status) return;
+
+      if (data.status === "present") present++;
+      else if (data.status === "absent") absent++;
+      else if (data.status === "late") absent++;
+
+      // if you have substitution field
+      if (data.substitution) substitutions++;
+    });
+
+    document.getElementById("present-count").innerText = present;
+    document.getElementById("absent-count").innerText = absent;
+    document.getElementById("substitution-count").innerText = substitutions;
+  });
+}
+
