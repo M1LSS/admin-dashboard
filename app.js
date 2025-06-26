@@ -125,3 +125,8 @@ function loadSubstitutions() {
     });
   });
 }
+function fetchSummary() {
+  // your logic to fetch today's summary
+  console.log("Refreshing summary...");
+}
+
