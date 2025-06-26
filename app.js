@@ -1,6 +1,3 @@
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
 // Fetch today's summary data
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
