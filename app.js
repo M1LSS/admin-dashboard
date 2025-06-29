@@ -51,6 +51,7 @@ function loadTeachers() {
     snapshot.forEach(child => {
       const uid = child.key;
       const teacher = child.val();
+
       const row = `
         <tr>
           <td>${uid}</td>
@@ -58,13 +59,17 @@ function loadTeachers() {
           <td>${teacher.subject || ""}</td>
           <td>${teacher.class || ""}</td>
           <td>${teacher.phone || ""}</td>
-          <td></td>
+          <td>
+            <button onclick="editTeacher('${uid}')">Edit</button>
+            <button onclick="deleteTeacher('${uid}')">Delete</button>
+          </td>
         </tr>
       `;
       tableBody.innerHTML += row;
     });
   });
 }
+
 
 function loadAttendance() {
   const today = new Date().toISOString().split('T')[0];
