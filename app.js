@@ -47,7 +47,7 @@ function fetchSummary() {
 }
 
 function loadTeachers() {
-  const tableBody = document.querySelector("#teachersTable tbody");
+  const tableBody = document.getElementById("teacher-table-body");
   tableBody.innerHTML = "";
 
   database.ref("teachers").once("value", snapshot => {
@@ -72,42 +72,44 @@ function loadTeachers() {
   });
 }
 
+
 function editTeacher(uid) {
-  const ref = database.ref("teachers/" + uid);
-  ref.once("value", snapshot => {
-    const teacher = snapshot.val();
-    if (!teacher) return alert("Teacher not found.");
+  database.ref("teachers/" + uid).once("value", snapshot => {
+    if (!snapshot.exists()) {
+      alert("Teacher not found!");
+      return;
+    }
 
-    const name = prompt("Edit Name:", teacher.name) || teacher.name;
-    const subject = prompt("Edit Subject:", teacher.subject) || teacher.subject;
-    const teacherClass = prompt("Edit Class:", teacher.class) || teacher.class;
-    const phone = prompt("Edit Phone:", teacher.phone) || teacher.phone;
+    const data = snapshot.val();
+    const name = prompt("Enter new name:", data.name || "");
+    const subject = prompt("Enter new subject:", data.subject || "");
+    const className = prompt("Enter new class:", data.class || "");
+    const phone = prompt("Enter new phone:", data.phone || "");
 
-    ref.set({ name, subject, class: teacherClass, phone })
-      .then(() => {
-        alert("✅ Teacher updated.");
+    if (name && subject && className && phone) {
+      database.ref("teachers/" + uid).update({
+        name,
+        subject,
+        class: className,
+        phone
+      }).then(() => {
+        alert("✅ Teacher updated");
         loadTeachers();
-      })
-      .catch(err => {
-        alert("❌ Failed to update teacher.");
-        console.error(err);
       });
+    }
   });
 }
 
+
 function deleteTeacher(uid) {
-  if (confirm("Are you sure to delete this teacher?")) {
-    database.ref("teachers/" + uid).remove()
-      .then(() => {
-        alert("🗑️ Teacher deleted.");
-        loadTeachers();
-      })
-      .catch(err => {
-        alert("❌ Failed to delete.");
-        console.error(err);
-      });
+  if (confirm("Are you sure you want to delete this teacher?")) {
+    database.ref("teachers/" + uid).remove().then(() => {
+      alert("🗑️ Teacher deleted");
+      loadTeachers();
+    });
   }
 }
+
 
 function loadAttendance() {
   const today = new Date().toISOString().split('T')[0];
