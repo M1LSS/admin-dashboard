@@ -124,22 +124,33 @@ function loadAttendance() {
   const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
 
-  database.ref("attendance/" + today).once("value", snapshot => {
-    snapshot.forEach(child => {
-      const uid = child.key;
-      const data = child.val();
-      if (!data.status) return;
+  database.ref("attendance/" + selectedDate).once("value", snapshot => {
+    if (!snapshot.exists()) {
+      tableBody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
+      return;
+    }
 
-      database.ref("teachers/" + uid + "/name").once("value", snap => {
-        const name = snap.val() || uid;
+    const teacherMap = {};
+    database.ref("teachers").once("value", teachersSnapshot => {
+      teachersSnapshot.forEach(child => {
+        teacherMap[child.key] = child.val().name;
+      });
+
+      snapshot.forEach(child => {
+        const uid = child.key;
+        const data = child.val();
+
+        // Only show UIDs that are 8 characters (to skip invalid keys)
+        if (uid.length !== 8 || typeof data !== "object") return;
+
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${name}</td>
-          <td>${data.status}</td>
+          <td>${teacherMap[uid] || uid}</td>
+          <td>${data.status || "absent"}</td>
           <td>${data.punch_in || "-"}</td>
           <td>${data.punch_out || "-"}</td>
         `;
-        tbody.appendChild(row);
+        tableBody.appendChild(row);
       });
     });
   });
