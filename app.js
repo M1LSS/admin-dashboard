@@ -120,9 +120,13 @@ function deleteTeacher(uid) {
 }
 
 function loadAttendance() {
+  const dateInput = document.getElementById("dateFilter");
+if (dateInput) {
   const today = new Date().toISOString().split('T')[0];
-  const tbody = document.getElementById("attendanceTable");
-  tbody.innerHTML = "";
+  dateInput.value = today;
+  dateInput.addEventListener("change", loadAttendance);
+}
+
 
   database.ref("attendance/" + selectedDate).once("value", snapshot => {
     if (!snapshot.exists()) {
