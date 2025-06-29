@@ -1,7 +1,9 @@
-// Firebase configuration (make sure firebase-config.js is correctly linked)
-// Assumes firebase has already been initialized with firebase.initializeApp(firebaseConfig);
+// Smart Teacher Attendance Dashboard JS
 
-document.addEventListener("DOMContentLoaded", () => {
+// Firebase configuration is assumed to be initialized from firebase-config.js
+
+// Handle tab switching
+window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
 
@@ -12,26 +14,19 @@ document.addEventListener("DOMContentLoaded", () => {
       tabs.forEach(tab => tab.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(tabId).classList.add("active");
-
-      // Trigger functions based on tab
-      if (tabId === "overview") fetchSummary();
-      if (tabId === "teachers") loadTeachers();
-      if (tabId === "attendance") loadAttendance();
-      if (tabId === "substitution") loadSubstitutions();
     });
   });
 
-  // Initial load
   fetchSummary();
+  setInterval(fetchSummary, 30000);
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
-  setInterval(fetchSummary, 30000);
 });
 
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
-  const attendanceRef = firebase.database().ref("attendance/" + today);
+  const attendanceRef = database.ref("attendance/" + today);
 
   attendanceRef.once("value", snapshot => {
     let present = 0, absent = 0, substitutions = 0;
@@ -39,7 +34,7 @@ function fetchSummary() {
     snapshot.forEach(child => {
       const data = child.val();
       const key = child.key;
-      if (typeof data !== "object" || !data.status || key.length !== 8) return;
+      if (typeof data !== "object" || !data.status) return;
       if (data.status === "present") present++;
       else if (data.status === "absent" || data.status === "late") absent++;
       if (data.substitution) substitutions++;
@@ -53,24 +48,26 @@ function fetchSummary() {
 
 function loadTeachers() {
   const tableBody = document.querySelector("#teachersTable tbody");
-  if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  firebase.database().ref("teachers").once("value", snapshot => {
+  database.ref("teachers").once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
       const teacher = child.val();
-      const row = `
-        <tr>
-          <td>${uid}</td>
-          <td>${teacher.name || ""}</td>
-          <td>${teacher.subject || ""}</td>
-          <td>${teacher.class || ""}</td>
-          <td>${teacher.phone || ""}</td>
-          <td><button>Edit</button> <button>Delete</button></td>
-        </tr>
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${uid}</td>
+        <td>${teacher.name || ""}</td>
+        <td>${teacher.subject || ""}</td>
+        <td>${teacher.class || ""}</td>
+        <td>${teacher.phone || ""}</td>
+        <td>
+          <button onclick="editTeacher('${uid}')">Edit</button>
+          <button onclick="deleteTeacher('${uid}')">Delete</button>
+        </td>
       `;
-      tableBody.innerHTML += row;
+      tableBody.appendChild(row);
     });
   });
 }
@@ -81,64 +78,58 @@ function editTeacher(uid) {
     const teacher = snapshot.val();
     if (!teacher) return alert("Teacher not found.");
 
-    const name = prompt("Edit Name:", teacher.name || "") || teacher.name;
-    const subject = prompt("Edit Subject:", teacher.subject || "") || teacher.subject;
-    const teacherClass = prompt("Edit Class:", teacher.class || "") || teacher.class;
-    const phone = prompt("Edit Phone:", teacher.phone || "") || teacher.phone;
+    const name = prompt("Edit Name:", teacher.name) || teacher.name;
+    const subject = prompt("Edit Subject:", teacher.subject) || teacher.subject;
+    const teacherClass = prompt("Edit Class:", teacher.class) || teacher.class;
+    const phone = prompt("Edit Phone:", teacher.phone) || teacher.phone;
 
-    ref.set({
-      name,
-      subject,
-      class: teacherClass,
-      phone
-    }).then(() => {
-      alert("✅ Teacher info updated.");
-      loadTeachers();
-    }).catch(error => {
-      console.error(error);
-      alert("❌ Failed to update.");
-    });
+    ref.set({ name, subject, class: teacherClass, phone })
+      .then(() => {
+        alert("✅ Teacher updated.");
+        loadTeachers();
+      })
+      .catch(err => {
+        alert("❌ Failed to update teacher.");
+        console.error(err);
+      });
   });
 }
 
 function deleteTeacher(uid) {
-  if (confirm("Are you sure you want to delete this teacher?")) {
+  if (confirm("Are you sure to delete this teacher?")) {
     database.ref("teachers/" + uid).remove()
       .then(() => {
         alert("🗑️ Teacher deleted.");
         loadTeachers();
       })
-      .catch(error => {
-        console.error(error);
+      .catch(err => {
         alert("❌ Failed to delete.");
+        console.error(err);
       });
   }
 }
 
-
 function loadAttendance() {
   const today = new Date().toISOString().split('T')[0];
-  const tableBody = document.getElementById("attendanceTable");
-  if (!tableBody) return;
-  tableBody.innerHTML = "";
+  const tbody = document.getElementById("attendanceTable");
+  tbody.innerHTML = "";
 
-  firebase.database().ref("attendance/" + today).once("value", snapshot => {
+  database.ref("attendance/" + today).once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
-      const record = child.val();
-      if (!record.status || uid.length !== 8) return;
+      const data = child.val();
+      if (!data.status) return;
 
-      firebase.database().ref("teachers/" + uid + "/name").once("value", nameSnap => {
-        const name = nameSnap.val() || uid;
-        const row = `
-          <tr>
-            <td>${name}</td>
-            <td>${record.status || ""}</td>
-            <td>${record.punch_in || "-"}</td>
-            <td>${record.punch_out || "-"}</td>
-          </tr>
+      database.ref("teachers/" + uid + "/name").once("value", snap => {
+        const name = snap.val() || uid;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${data.status}</td>
+          <td>${data.punch_in || "-"}</td>
+          <td>${data.punch_out || "-"}</td>
         `;
-        tableBody.innerHTML += row;
+        tbody.appendChild(row);
       });
     });
   });
@@ -146,20 +137,18 @@ function loadAttendance() {
 
 function loadSubstitutions() {
   const tableBody = document.getElementById("substitutionTableBody");
-  if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  firebase.database().ref("substitutions").once("value", snapshot => {
+  database.ref("substitutions").once("value", snapshot => {
     snapshot.forEach(child => {
-      const assignment = child.val();
-      const row = `
-        <tr>
-          <td>${assignment.absent_teacher || "-"}</td>
-          <td>${assignment.class || "-"}</td>
-          <td>${assignment.substitute_teacher || "-"}</td>
-        </tr>
+      const sub = child.val();
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${sub.absent_teacher || "-"}</td>
+        <td>${sub.class || "-"}</td>
+        <td>${sub.substitute_teacher || "-"}</td>
       `;
-      tableBody.innerHTML += row;
+      tableBody.appendChild(row);
     });
   });
 }
