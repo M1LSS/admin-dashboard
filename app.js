@@ -1,4 +1,3 @@
-// Fetch today's summary data
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
   const attendanceRef = database.ref("attendance/" + today);
@@ -10,13 +9,12 @@ function fetchSummary() {
       const data = child.val();
       const key = child.key;
 
-      // Skip if it's not an attendance record
+      // Only count valid teacher records (8-character UID)
       if (typeof data !== "object" || !data.status || key.length !== 8) return;
 
       if (data.status === "present") present++;
       else if (data.status === "absent" || data.status === "late") absent++;
 
-      // Optional: check if substitution assigned
       if (data.substitution) substitutions++;
     });
 
@@ -26,12 +24,12 @@ function fetchSummary() {
   });
 }
 
-// Run on page load
 window.onload = () => {
   const currentPage = window.location.pathname;
 
   if (currentPage.includes("overview.html")) {
-    fetchSummary();
+    fetchSummary(); // Initial load
+    setInterval(fetchSummary, 30000); // Auto-refresh every 30 seconds
   }
 
   if (currentPage.includes("teachers.html")) {
@@ -46,6 +44,7 @@ window.onload = () => {
     loadSubstitutions();
   }
 };
+
 
 // --- Add any other functions for Teachers, Attendance, Substitution below ---
 
