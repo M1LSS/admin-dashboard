@@ -63,7 +63,7 @@ function loadTeachers() {
         <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled /></td>
         <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled /></td>
         <td>
-          <button onclick="toggleEdit('${uid}')">Edit</button>
+          <button onclick="toggleEdit('${uid}', this)">Edit</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
         </td>
       `;
@@ -72,51 +72,39 @@ function loadTeachers() {
   });
 }
 
-function toggleEdit(uid) {
+
+function toggleEdit(uid, button) {
   const uidInput = document.getElementById(`uid-${uid}`);
   const nameInput = document.getElementById(`name-${uid}`);
   const subjectInput = document.getElementById(`subject-${uid}`);
   const classInput = document.getElementById(`class-${uid}`);
   const phoneInput = document.getElementById(`phone-${uid}`);
-  const editButton = event.target;
 
   const isDisabled = uidInput.disabled;
 
   if (isDisabled) {
-    // Enable editing
+    // Enable fields
     uidInput.disabled = false;
     nameInput.disabled = false;
     subjectInput.disabled = false;
     classInput.disabled = false;
     phoneInput.disabled = false;
-    editButton.textContent = "Save";
+    button.textContent = "Save";
   } else {
-    // Save changes
+    // Save logic
     const newUid = uidInput.value.trim();
-    const name = nameInput.value.trim();
-    const subject = subjectInput.value.trim();
-    const className = classInput.value.trim();
-    const phone = phoneInput.value.trim();
-
-    if (!newUid || !name || !subject || !className || !phone) {
-      alert("All fields are required.");
-      return;
-    }
-
     const updatedData = {
-      name,
-      subject,
-      class: className,
-      phone
+      name: nameInput.value.trim(),
+      subject: subjectInput.value.trim(),
+      class: classInput.value.trim(),
+      phone: phoneInput.value.trim()
     };
 
     if (newUid !== uid) {
-      // UID changed → create new, delete old
       database.ref("teachers/" + newUid).set(updatedData)
         .then(() => database.ref("teachers/" + uid).remove())
         .then(() => loadTeachers());
     } else {
-      // UID same → update existing
       database.ref("teachers/" + uid).update(updatedData)
         .then(() => loadTeachers());
     }
