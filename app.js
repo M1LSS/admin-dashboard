@@ -57,13 +57,13 @@ function loadTeachers() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${uid}</td>
-        <td>${teacher.name || ""}</td>
-        <td>${teacher.subject || ""}</td>
-        <td>${teacher.class || ""}</td>
-        <td>${teacher.phone || ""}</td>
+        <td><span>${uid}</span></td>
+        <td><input type="text" value="${teacher.name || ""}" id="name-${uid}" /></td>
+        <td><input type="text" value="${teacher.subject || ""}" id="subject-${uid}" /></td>
+        <td><input type="text" value="${teacher.class || ""}" id="class-${uid}" /></td>
+        <td><input type="text" value="${teacher.phone || ""}" id="phone-${uid}" /></td>
         <td>
-          <button onclick="editTeacher('${uid}')">Edit</button>
+          <button onclick="updateTeacher('${uid}')">Update</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
         </td>
       `;
@@ -72,43 +72,42 @@ function loadTeachers() {
   });
 }
 
+function updateTeacher(uid) {
+  const name = document.getElementById(`name-${uid}`).value.trim();
+  const subject = document.getElementById(`subject-${uid}`).value.trim();
+  const className = document.getElementById(`class-${uid}`).value.trim();
+  const phone = document.getElementById(`phone-${uid}`).value.trim();
 
-function editTeacher(uid) {
-  database.ref("teachers/" + uid).once("value", snapshot => {
-    if (!snapshot.exists()) {
-      alert("Teacher not found!");
-      return;
-    }
+  if (!name || !subject || !className || !phone) {
+    alert("Please fill in all fields.");
+    return;
+  }
 
-    const data = snapshot.val();
-    const name = prompt("Enter new name:", data.name || "");
-    const subject = prompt("Enter new subject:", data.subject || "");
-    const className = prompt("Enter new class:", data.class || "");
-    const phone = prompt("Enter new phone:", data.phone || "");
-
-    if (name && subject && className && phone) {
-      database.ref("teachers/" + uid).update({
-        name,
-        subject,
-        class: className,
-        phone
-      }).then(() => {
-        alert("✅ Teacher updated");
-        loadTeachers();
-      });
-    }
-  });
+  database.ref("teachers/" + uid).set({ name, subject, class: className, phone })
+    .then(() => {
+      alert("✅ Teacher updated successfully!");
+      loadTeachers();
+    })
+    .catch(err => {
+      console.error("❌ Error updating teacher:", err);
+      alert("❌ Failed to update teacher.");
+    });
 }
-
 
 function deleteTeacher(uid) {
   if (confirm("Are you sure you want to delete this teacher?")) {
-    database.ref("teachers/" + uid).remove().then(() => {
-      alert("🗑️ Teacher deleted");
-      loadTeachers();
-    });
+    database.ref("teachers/" + uid).remove()
+      .then(() => {
+        alert("🗑️ Teacher deleted successfully.");
+        loadTeachers();
+      })
+      .catch(err => {
+        console.error("❌ Error deleting teacher:", err);
+        alert("❌ Failed to delete teacher.");
+      });
   }
 }
+
 
 
 function loadAttendance() {
