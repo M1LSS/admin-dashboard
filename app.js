@@ -1,3 +1,6 @@
+// Firebase configuration (make sure firebase-config.js is correctly linked)
+// Assumes firebase has already been initialized with firebase.initializeApp(firebaseConfig);
+
 document.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -9,13 +12,26 @@ document.addEventListener("DOMContentLoaded", () => {
       tabs.forEach(tab => tab.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(tabId).classList.add("active");
+
+      // Trigger functions based on tab
+      if (tabId === "overview") fetchSummary();
+      if (tabId === "teachers") loadTeachers();
+      if (tabId === "attendance") loadAttendance();
+      if (tabId === "substitution") loadSubstitutions();
     });
   });
+
+  // Initial load
+  fetchSummary();
+  loadTeachers();
+  loadAttendance();
+  loadSubstitutions();
+  setInterval(fetchSummary, 30000);
 });
 
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
-  const attendanceRef = database.ref("attendance/" + today);
+  const attendanceRef = firebase.database().ref("attendance/" + today);
 
   attendanceRef.once("value", snapshot => {
     let present = 0, absent = 0, substitutions = 0;
@@ -35,23 +51,15 @@ function fetchSummary() {
   });
 }
 
-window.onload = () => {
-  fetchSummary();
-  setInterval(fetchSummary, 30000);
-  loadTeachers();
-  loadAttendance();
-  loadSubstitutions();
-};
-
 function loadTeachers() {
-  const tableBody = document.getElementById("teacher-table-body");
+  const tableBody = document.querySelector("#teachersTable tbody");
+  if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  database.ref("teachers").once("value", snapshot => {
+  firebase.database().ref("teachers").once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
       const teacher = child.val();
-
       const row = `
         <tr>
           <td>${uid}</td>
@@ -59,10 +67,7 @@ function loadTeachers() {
           <td>${teacher.subject || ""}</td>
           <td>${teacher.class || ""}</td>
           <td>${teacher.phone || ""}</td>
-          <td>
-            <button onclick="editTeacher('${uid}')">Edit</button>
-            <button onclick="deleteTeacher('${uid}')">Delete</button>
-          </td>
+          <td><button>Edit</button> <button>Delete</button></td>
         </tr>
       `;
       tableBody.innerHTML += row;
@@ -70,18 +75,19 @@ function loadTeachers() {
   });
 }
 
-
 function loadAttendance() {
   const today = new Date().toISOString().split('T')[0];
-  const tableBody = document.getElementById("attendance-table-body");
+  const tableBody = document.getElementById("attendanceTable");
+  if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  database.ref("attendance/" + today).once("value", snapshot => {
+  firebase.database().ref("attendance/" + today).once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
       const record = child.val();
       if (!record.status || uid.length !== 8) return;
-      database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
+
+      firebase.database().ref("teachers/" + uid + "/name").once("value", nameSnap => {
         const name = nameSnap.val() || uid;
         const row = `
           <tr>
@@ -98,9 +104,11 @@ function loadAttendance() {
 }
 
 function loadSubstitutions() {
-  const tableBody = document.getElementById("substitution-table-body");
+  const tableBody = document.getElementById("substitutionTableBody");
+  if (!tableBody) return;
   tableBody.innerHTML = "";
-  database.ref("substitutions").once("value", snapshot => {
+
+  firebase.database().ref("substitutions").once("value", snapshot => {
     snapshot.forEach(child => {
       const assignment = child.val();
       const row = `
