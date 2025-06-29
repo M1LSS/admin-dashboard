@@ -6,6 +6,11 @@
 window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
+  const dateInput = document.getElementById("dateFilter");
+if (dateInput) {
+  dateInput.addEventListener("change", loadAttendance);
+}
+
 
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -121,40 +126,30 @@ function deleteTeacher(uid) {
 
 function loadAttendance() {
   const dateInput = document.getElementById("dateFilter");
-if (dateInput) {
-  const today = new Date().toISOString().split('T')[0];
-  dateInput.value = today;
-  dateInput.addEventListener("change", loadAttendance);
-}
+  const selectedDate = dateInput?.value || new Date().toISOString().split('T')[0];
 
+  const tableBody = document.getElementById("attendanceTable");
+  tableBody.innerHTML = "";
 
   database.ref("attendance/" + selectedDate).once("value", snapshot => {
-    if (!snapshot.exists()) {
-      tableBody.innerHTML = "<tr><td colspan='4'>No records found.</td></tr>";
-      return;
-    }
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const record = child.val();
 
-    const teacherMap = {};
-    database.ref("teachers").once("value", teachersSnapshot => {
-      teachersSnapshot.forEach(child => {
-        teacherMap[child.key] = child.val().name;
-      });
+      if (!record.status || uid.length !== 8) return;
 
-      snapshot.forEach(child => {
-        const uid = child.key;
-        const data = child.val();
+      database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
+        const name = nameSnap.val() || uid;
 
-        // Only show UIDs that are 8 characters (to skip invalid keys)
-        if (uid.length !== 8 || typeof data !== "object") return;
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${teacherMap[uid] || uid}</td>
-          <td>${data.status || "absent"}</td>
-          <td>${data.punch_in || "-"}</td>
-          <td>${data.punch_out || "-"}</td>
+        const row = `
+          <tr>
+            <td>${name}</td>
+            <td>${record.status || ""}</td>
+            <td>${record.punch_in || "-"}</td>
+            <td>${record.punch_out || "-"}</td>
+          </tr>
         `;
-        tableBody.appendChild(row);
+        tableBody.innerHTML += row;
       });
     });
   });
