@@ -85,7 +85,7 @@ function loadAttendance() {
       const uid = child.key;
       const record = child.val();
 
-      if (!record.status) return;
+      if (!record.status || uid.length !== 8) return;
 
       database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
         const name = nameSnap.val() || uid;
@@ -125,8 +125,3 @@ function loadSubstitutions() {
     });
   });
 }
-function fetchSummary() {
-  // your logic to fetch today's summary
-  console.log("Refreshing summary...");
-}
-
