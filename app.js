@@ -75,6 +75,47 @@ function loadTeachers() {
   });
 }
 
+function editTeacher(uid) {
+  const ref = database.ref("teachers/" + uid);
+  ref.once("value", snapshot => {
+    const teacher = snapshot.val();
+    if (!teacher) return alert("Teacher not found.");
+
+    const name = prompt("Edit Name:", teacher.name || "") || teacher.name;
+    const subject = prompt("Edit Subject:", teacher.subject || "") || teacher.subject;
+    const teacherClass = prompt("Edit Class:", teacher.class || "") || teacher.class;
+    const phone = prompt("Edit Phone:", teacher.phone || "") || teacher.phone;
+
+    ref.set({
+      name,
+      subject,
+      class: teacherClass,
+      phone
+    }).then(() => {
+      alert("✅ Teacher info updated.");
+      loadTeachers();
+    }).catch(error => {
+      console.error(error);
+      alert("❌ Failed to update.");
+    });
+  });
+}
+
+function deleteTeacher(uid) {
+  if (confirm("Are you sure you want to delete this teacher?")) {
+    database.ref("teachers/" + uid).remove()
+      .then(() => {
+        alert("🗑️ Teacher deleted.");
+        loadTeachers();
+      })
+      .catch(error => {
+        console.error(error);
+        alert("❌ Failed to delete.");
+      });
+  }
+}
+
+
 function loadAttendance() {
   const today = new Date().toISOString().split('T')[0];
   const tableBody = document.getElementById("attendanceTable");
