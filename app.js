@@ -1,3 +1,27 @@
+document.addEventListener("DOMContentLoaded", () => {
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabContents = document.querySelectorAll(".tab-content");
+
+  tabButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      const tabId = button.getAttribute("data-tab");
+
+      tabButtons.forEach(btn => btn.classList.remove("active"));
+      button.classList.add("active");
+
+      tabContents.forEach(tab => {
+        tab.classList.remove("active");
+        if (tab.id === tabId) {
+          tab.classList.add("active");
+        }
+      });
+    });
+  });
+
+  // Trigger first tab load
+  document.querySelector(".tab-btn.active")?.click();
+});
+
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
   const attendanceRef = database.ref("attendance/" + today);
