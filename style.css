@@ -86,4 +86,12 @@ form input, form button {
   background-color: #0056b3;
 }
 
+#addTeacherForm {
+  margin-bottom: 20px;
+}
+
+#addTeacherForm input {
+  margin: 5px;
+  padding: 5px;
+}
 
