@@ -29,22 +29,24 @@ function fetchSummary() {
   const attendanceRef = database.ref("attendance/" + today);
 
   attendanceRef.once("value", snapshot => {
-    let present = 0, absent = 0, substitutions = 0;
+    let present = 0, absent = 0, late = 0;
 
     snapshot.forEach(child => {
       const data = child.val();
       const key = child.key;
-      if (typeof data !== "object" || !data.status || key.length !== 8) return;
+      if (typeof data !== "object" || !data.status) return;
+
       if (data.status === "present") present++;
-      else if (data.status === "absent" || data.status === "late") absent++;
-      if (data.substitution) substitutions++;
+      else if (data.status === "absent") absent++;
+      else if (data.status === "late") late++;
     });
 
     document.getElementById("present-count").innerText = present;
     document.getElementById("absent-count").innerText = absent;
-    document.getElementById("substitution-count").innerText = substitutions;
+    document.getElementById("late-count").innerText = late;
   });
 }
+
 
 function loadTeachers() {
   const tableBody = document.getElementById("teacher-table-body");
