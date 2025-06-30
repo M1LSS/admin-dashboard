@@ -22,8 +22,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
-  showToast("Summary updated");
-
+  
 });
 
 function fetchSummary() {
@@ -46,6 +45,8 @@ function fetchSummary() {
     document.getElementById("present-count").innerText = present;
     document.getElementById("absent-count").innerText = absent;
     document.getElementById("late-count").innerText = late;
+
+    showToast("Summary updated");
   });
 }
 
