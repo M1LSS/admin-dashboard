@@ -116,19 +116,26 @@ function loadAttendance() {
   tableBody.innerHTML = "";
 
   database.ref("attendance/" + selectedDate).once("value", snapshot => {
+    if (!snapshot.exists()) {
+      tableBody.innerHTML = `<tr><td colspan="4">No data found for ${selectedDate}</td></tr>`;
+      return;
+    }
+
     snapshot.forEach(child => {
       const uid = child.key;
       const record = child.val();
 
-      if (!record.status) return;
+      // Skip if not a proper record
+      if (!record || typeof record !== 'object') return;
 
+      // Get teacher name (fallback to UID if name not found)
       database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
-        const name = nameSnap.val() || uid;
+        const name = nameSnap.exists() ? nameSnap.val() : uid;
 
         const row = `
           <tr>
             <td>${name}</td>
-            <td>${record.status || ""}</td>
+            <td>${record.status || "absent"}</td>
             <td>${record.punch_in || "-"}</td>
             <td>${record.punch_out || "-"}</td>
           </tr>
@@ -138,6 +145,7 @@ function loadAttendance() {
     });
   });
 }
+
 
 function loadSubstitutions() {
   const tableBody = document.getElementById("substitutionTableBody");
