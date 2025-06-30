@@ -97,19 +97,30 @@ function loadAttendance() {
   const date = document.getElementById("dateFilter").value || new Date().toISOString().split('T')[0];
   const tableBody = document.getElementById("attendanceTable");
   tableBody.innerHTML = "";
-  database.ref("attendance/" + date).once("value", snapshot => {
-    snapshot.forEach(child => {
-      const uid = child.key;
-      const record = child.val();
-      if (!record.status || uid.length !== 8) return;
-      database.ref("teachers/" + uid + "/name").once("value", snap => {
-        const name = snap.val() || uid;
-        const row = `<tr><td>${name}</td><td>${record.status || ""}</td><td>${record.punch_in || "-"}</td><td>${record.punch_out || "-"}</td></tr>`;
-        tableBody.innerHTML += row;
-      });
+  database.ref("attendance/" + selectedDate).once("value", snapshot => {
+  snapshot.forEach(child => {
+    const uid = child.key;
+    const record = child.val();
+
+    // Skip only clearly invalid data
+    if (typeof record !== "object") return;
+
+    database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
+      const name = nameSnap.val() || uid;
+
+      const row = `
+        <tr>
+          <td>${name}</td>
+          <td>${record.status || "-"}</td>
+          <td>${record.punch_in || "-"}</td>
+          <td>${record.punch_out || "-"}</td>
+        </tr>
+      `;
+      tableBody.innerHTML += row;
     });
   });
-}
+});
+
 
 function loadSubstitutions() {
   const tableBody = document.getElementById("substitutionTableBody");
