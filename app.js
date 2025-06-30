@@ -47,21 +47,29 @@ function fetchSummary() {
 }
 
 function loadTeachers() {
-  const tableBody = document.querySelector("#teachersTable tbody");
+  const tableBody = document.getElementById("teacher-table-body");
   tableBody.innerHTML = "";
 
   database.ref("teachers").once("value", snapshot => {
+    if (!snapshot.exists()) {
+      tableBody.innerHTML = `<tr><td colspan="6">No teacher data found</td></tr>`;
+      return;
+    }
+
     snapshot.forEach(child => {
       const uid = child.key;
       const teacher = child.val();
 
+      // Skip invalid entries (e.g. if value is not an object)
+      if (typeof teacher !== "object" || !teacher.name) return;
+
       const row = document.createElement("tr");
       row.innerHTML = `
         <td><input type="text" id="uid-${uid}" value="${uid}" disabled /></td>
-        <td><input type="text" id="name-${uid}" value="${teacher.name || ''}" disabled /></td>
-        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ''}" disabled /></td>
-        <td><input type="text" id="class-${uid}" value="${teacher.class || ''}" disabled /></td>
-        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ''}" disabled /></td>
+        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled /></td>
+        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled /></td>
+        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled /></td>
+        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled /></td>
         <td>
           <button onclick="toggleEdit('${uid}', this)">Edit</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
@@ -71,6 +79,7 @@ function loadTeachers() {
     });
   });
 }
+
 
 function toggleEdit(uid, button) {
   const fields = ["uid", "name", "subject", "class", "phone"].map(field =>
