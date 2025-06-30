@@ -173,3 +173,31 @@ function loadSubstitutions() {
     });
   });
 }
+
+document.getElementById("addTeacherForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+
+  const uid = document.getElementById("newUID").value.trim();
+  const name = document.getElementById("newName").value.trim();
+  const subject = document.getElementById("newSubject").value.trim();
+  const className = document.getElementById("newClass").value.trim();
+  const phone = document.getElementById("newPhone").value.trim();
+
+  if (!uid || !name || !subject || !className || !phone) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  database.ref("teachers/" + uid).set({
+    name: name,
+    subject: subject,
+    class: className,
+    phone: phone
+  }).then(() => {
+    alert("✅ Teacher added!");
+    document.getElementById("addTeacherForm").reset();
+    loadTeachers();
+  }).catch((error) => {
+    alert("❌ Failed to add teacher: " + error.message);
+  });
+});
