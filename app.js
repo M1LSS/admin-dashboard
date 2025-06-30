@@ -22,6 +22,8 @@ window.addEventListener("DOMContentLoaded", () => {
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
+  showToast("Summary updated");
+
 });
 
 function fetchSummary() {
@@ -212,3 +214,12 @@ document.getElementById("addTeacherForm").addEventListener("submit", function (e
   });
 });
 
+function showToast(message = "Summary updated") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 2000); // Show for 2 seconds
+}
