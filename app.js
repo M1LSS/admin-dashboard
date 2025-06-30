@@ -1,8 +1,8 @@
 // Smart Teacher Attendance Dashboard JS
 
-// Firebase configuration is assumed to be initialized from firebase-config.js
+// Firebase is assumed to be initialized via firebase-config.js
 
-// Handle tab switching
+// Tab switching
 window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -34,7 +34,7 @@ function fetchSummary() {
     snapshot.forEach(child => {
       const data = child.val();
       const key = child.key;
-      if (typeof data !== "object" || !data.status) return;
+      if (typeof data !== "object" || !data.status || key.length !== 8) return;
       if (data.status === "present") present++;
       else if (data.status === "absent" || data.status === "late") absent++;
       if (data.substitution) substitutions++;
@@ -47,7 +47,7 @@ function fetchSummary() {
 }
 
 function loadTeachers() {
-  const tableBody = document.getElementById("teacher-table-body");
+  const tableBody = document.querySelector("#teachersTable tbody");
   tableBody.innerHTML = "";
 
   database.ref("teachers").once("value", snapshot => {
@@ -58,10 +58,10 @@ function loadTeachers() {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td><input type="text" id="uid-${uid}" value="${uid}" disabled /></td>
-        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled /></td>
-        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled /></td>
-        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled /></td>
-        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled /></td>
+        <td><input type="text" id="name-${uid}" value="${teacher.name || ''}" disabled /></td>
+        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ''}" disabled /></td>
+        <td><input type="text" id="class-${uid}" value="${teacher.class || ''}" disabled /></td>
+        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ''}" disabled /></td>
         <td>
           <button onclick="toggleEdit('${uid}', this)">Edit</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
@@ -73,28 +73,22 @@ function loadTeachers() {
 }
 
 function toggleEdit(uid, button) {
-  const uidInput = document.getElementById(`uid-${uid}`);
-  const nameInput = document.getElementById(`name-${uid}`);
-  const subjectInput = document.getElementById(`subject-${uid}`);
-  const classInput = document.getElementById(`class-${uid}`);
-  const phoneInput = document.getElementById(`phone-${uid}`);
+  const fields = ["uid", "name", "subject", "class", "phone"].map(field =>
+    document.getElementById(`${field}-${uid}`)
+  );
 
-  const isDisabled = uidInput.disabled;
+  const isDisabled = fields[0].disabled;
 
   if (isDisabled) {
-    uidInput.disabled = false;
-    nameInput.disabled = false;
-    subjectInput.disabled = false;
-    classInput.disabled = false;
-    phoneInput.disabled = false;
+    fields.forEach(input => input.disabled = false);
     button.textContent = "Save";
   } else {
-    const newUid = uidInput.value.trim();
+    const newUid = fields[0].value.trim();
     const updatedData = {
-      name: nameInput.value.trim(),
-      subject: subjectInput.value.trim(),
-      class: classInput.value.trim(),
-      phone: phoneInput.value.trim()
+      name: fields[1].value.trim(),
+      subject: fields[2].value.trim(),
+      class: fields[3].value.trim(),
+      phone: fields[4].value.trim()
     };
 
     if (newUid !== uid) {
@@ -126,21 +120,18 @@ function loadAttendance() {
     snapshot.forEach(child => {
       const uid = child.key;
       const record = child.val();
-
-      if (typeof record !== "object") return;
+      if (!record.status || uid.length !== 8) return;
 
       database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
         const name = nameSnap.val() || uid;
-
-        const row = `
-          <tr>
-            <td>${name}</td>
-            <td>${record.status || "-"}</td>
-            <td>${record.punch_in || "-"}</td>
-            <td>${record.punch_out || "-"}</td>
-          </tr>
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${record.status || ""}</td>
+          <td>${record.punch_in || "-"}</td>
+          <td>${record.punch_out || "-"}</td>
         `;
-        tableBody.innerHTML += row;
+        tableBody.appendChild(row);
       });
     });
   });
