@@ -22,23 +22,25 @@
 
   <div class="content">
     <div id="overview" class="tab-content active">
-      <h2>Today’s Summary</h2>
-      <button onclick="fetchSummary()">🔄 Refresh</button>
-      <div class="summary-container">
-        <div class="summary-box">
-          <h3>Present</h3>
-          <p id="present-count">--</p>
-        </div>
-        <div class="summary-box">
-          <h3>Absent</h3>
-          <p id="absent-count">--</p>
-        </div>
-        <div class="summary-box">
-          <h3>Substitutions</h3>
-          <p id="substitution-count">--</p>
-        </div>
-      </div>
+  <h2>Today’s Summary</h2>
+  <button onclick="fetchSummary()" class="refresh-btn">🔄 Refresh</button>
+
+  <div class="summary-box-container">
+    <div class="summary-card">
+      <h4>✅ Present</h4>
+      <p id="present-count">--</p>
     </div>
+    <div class="summary-card">
+      <h4>❌ Absent</h4>
+      <p id="absent-count">--</p>
+    </div>
+    <div class="summary-card">
+      <h4>⏰ Late</h4>
+      <p id="late-count">--</p>
+    </div>
+  </div>
+</div>
+
 
     <div id="teachers" class="tab-content">
 
