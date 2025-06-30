@@ -177,27 +177,36 @@ function loadSubstitutions() {
 document.getElementById("addTeacherForm").addEventListener("submit", function (e) {
   e.preventDefault();
 
-  const uid = document.getElementById("newUID").value.trim();
+  const uid = document.getElementById("newUID").value.trim().toUpperCase();
   const name = document.getElementById("newName").value.trim();
   const subject = document.getElementById("newSubject").value.trim();
   const className = document.getElementById("newClass").value.trim();
   const phone = document.getElementById("newPhone").value.trim();
 
+  // Basic validation
   if (!uid || !name || !subject || !className || !phone) {
-    alert("Please fill in all fields.");
+    alert("❗ Please fill in all fields.");
     return;
   }
 
-  database.ref("teachers/" + uid).set({
-    name: name,
-    subject: subject,
-    class: className,
-    phone: phone
-  }).then(() => {
-    alert("✅ Teacher added!");
-    document.getElementById("addTeacherForm").reset();
-    loadTeachers();
-  }).catch((error) => {
-    alert("❌ Failed to add teacher: " + error.message);
+  // Check if UID already exists
+  database.ref("teachers/" + uid).get().then(snapshot => {
+    if (snapshot.exists()) {
+      alert("⚠️ A teacher with this UID already exists.");
+    } else {
+      database.ref("teachers/" + uid).set({
+        name: name,
+        subject: subject,
+        class: className,
+        phone: phone
+      }).then(() => {
+        alert("✅ Teacher added successfully.");
+        document.getElementById("addTeacherForm").reset();
+        loadTeachers();
+      }).catch(error => {
+        alert("❌ Error adding teacher: " + error.message);
+      });
+    }
   });
 });
+
