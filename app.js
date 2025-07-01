@@ -399,16 +399,16 @@ function generateSubstitutions() {
       });
     });
 
-    // 📤 Push to Firebase
-    const updates = {};
-    substitutions.forEach((s, i) => {
-      updates[`substitutions/${i}`] = s;
-    });
+    // Store to Firebase
+const updates = {};
+substitutions.forEach((s, i) => {
+  updates[`substitutions/${i}`] = s;
+});
 
-    database.ref().update(updates).then(() => {
-      alert("✅ Substitutions generated!");
-      loadSubstitutions();
-    });
+database.ref().update(updates).then(() => {
+  alert("✅ Substitutions generated!");
+  loadSubstitutions();
+});
   });
 }
 
