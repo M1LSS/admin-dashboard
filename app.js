@@ -7,6 +7,37 @@ window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
   populateTeacherDropdown();
+  document.getElementById("addScheduleForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const teacherUID = document.getElementById("scheduleTeacherSelect").value;
+  const teacherName = document.getElementById("scheduleTeacherSelect").selectedOptions[0].textContent;
+  const day = document.getElementById("scheduleDay").value;
+  const time = document.getElementById("scheduleTime").value;
+  const className = document.getElementById("scheduleClass").value;
+  const subject = document.getElementById("scheduleSubject").value;
+
+  if (!teacherUID || !day || !time || !className || !subject) {
+    alert("⚠️ Please fill out all fields.");
+    return;
+  }
+
+  const scheduleData = {
+    teacher: teacherName,
+    teacherUID,
+    day,
+    time,
+    class: className,
+    subject
+  };
+
+  database.ref("schedule").push(scheduleData).then(() => {
+    alert("✅ Schedule added!");
+    e.target.reset();
+    loadSchedule();
+  });
+});
+
   document.getElementById("scheduleTeacherSelect").addEventListener("change", function () {
   const selectedUID = this.value;
   database.ref("teachers/" + selectedUID).once("value", snapshot => {
