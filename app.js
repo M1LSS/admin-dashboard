@@ -333,6 +333,10 @@ function generateSubstitutions() {
     scheduleRef.once("value"),
     teacherRef.once("value")
   ]).then(([attSnap, schedSnap, teacherSnap]) => {
+    console.log("📦 Attendance Snapshot:", attSnap.val());
+    console.log("📦 Schedule Snapshot:", schedSnap.val());
+    console.log("📦 Teacher Snapshot:", teacherSnap.val());
+
     const absentTeachers = {};
     attSnap.forEach(child => {
       const status = child.val().status;
@@ -340,10 +344,12 @@ function generateSubstitutions() {
         absentTeachers[child.key] = true;
       }
     });
+    console.log("🟨 Absent Teachers:", absentTeachers);
 
     const teacherList = {};
     teacherSnap.forEach(child => {
-      teacherList[child.key] = { ...child.val(), uid: child.key };
+      const uid = child.key.toUpperCase(); // Normalize
+      teacherList[uid] = { ...child.val(), uid };
     });
 
     const allSchedules = [];
@@ -353,52 +359,77 @@ function generateSubstitutions() {
     });
 
     const absentSchedules = allSchedules.filter(item => absentTeachers[item.teacherUID]);
+    console.log("📋 Absent Teacher Schedules:", absentSchedules);
+
     const usedSlots = [];
     const substitutions = [];
 
     absentSchedules.forEach(entry => {
       const { teacherUID, day, time, class: cls, subject } = entry;
 
-      // Get all teacherUIDs that already have schedule at this day/time
+      // Find busy teachers
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
           busyTeachers.add(s.teacherUID);
         }
       });
+      console.log(`⏰ Time: ${time}, Day: ${day}, Busy:`, Array.from(busyTeachers));
 
       const alreadyAssigned = usedSlots.map(s => `${s.uid}-${day}-${time}`);
+      const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
       let substitute = null;
 
-      // 1. Regular, same subject
-      substitute = Object.values(teacherList).find(t => {
-        const slotKey = `${t.uid}-${day}-${time}`;
-        return !busyTeachers.has(t.uid) &&
-               !alreadyAssigned.includes(slotKey) &&
-               t.uid !== teacherUID &&
-               t.role === "regular" &&
-               t.subject === subject;
-      });
+      // Log candidate check
+      console.log(`🔍 Looking for sub for ${teacherList[teacherUID]?.name || teacherUID}, Class ${cls}, Subject ${subject}`);
 
-      // 2. Regular, any subject
-      if (!substitute) {
-        substitute = Object.values(teacherList).find(t => {
-          const slotKey = `${t.uid}-${day}-${time}`;
-          return !busyTeachers.has(t.uid) &&
-                 !alreadyAssigned.includes(slotKey) &&
-                 t.uid !== teacherUID &&
-                 t.role === "regular";
-        });
+      // Step 1: Regular, same subject
+      for (const t of candidates) {
+        const slotKey = `${t.uid}-${day}-${time}`;
+        const isBusy = busyTeachers.has(t.uid);
+        const isUsed = alreadyAssigned.includes(slotKey);
+
+        console.log(`🔄 Check (same subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, subjectMatch: ${t.subject === subject}, role: ${t.role}`);
+
+        if (!isBusy && !isUsed && t.subject === subject && t.role === "regular") {
+          substitute = t;
+          console.log("✅ Assigned (same subject):", t.name);
+          break;
+        }
       }
 
-      // 3. Wildcard
+      // Step 2: Regular, any subject
       if (!substitute) {
-        substitute = Object.values(teacherList).find(t => {
+        for (const t of candidates) {
           const slotKey = `${t.uid}-${day}-${time}`;
-          return !busyTeachers.has(t.uid) &&
-                 !alreadyAssigned.includes(slotKey) &&
-                 t.role === "wildcard";
-        });
+          const isBusy = busyTeachers.has(t.uid);
+          const isUsed = alreadyAssigned.includes(slotKey);
+
+          console.log(`🔄 Check (any subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
+
+          if (!isBusy && !isUsed && t.role === "regular") {
+            substitute = t;
+            console.log("✅ Assigned (any subject):", t.name);
+            break;
+          }
+        }
+      }
+
+      // Step 3: Wildcard
+      if (!substitute) {
+        for (const t of candidates) {
+          const slotKey = `${t.uid}-${day}-${time}`;
+          const isBusy = busyTeachers.has(t.uid);
+          const isUsed = alreadyAssigned.includes(slotKey);
+
+          console.log(`🔄 Check (wildcard) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
+
+          if (!isBusy && !isUsed && t.role === "wildcard") {
+            substitute = t;
+            console.log("✅ Assigned (wildcard):", t.name);
+            break;
+          }
+        }
       }
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
@@ -414,7 +445,9 @@ function generateSubstitutions() {
       });
     });
 
-    // Save to Firebase
+    // Final substitution preview
+    console.log("📦 Final Substitutions:", substitutions);
+
     const updates = {};
     substitutions.forEach((s, i) => {
       updates[`substitutions/${i}`] = s;
