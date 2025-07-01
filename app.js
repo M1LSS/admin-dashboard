@@ -322,10 +322,11 @@ function deleteSchedule(key) {
   }
 }
 
-// Smart Teacher Attendance Dashboard - Auto Substitution Logic (Fixed with Accurate Assignment)
+// Smart Teacher Attendance Dashboard - Full generateSubstitutions with Debug and Safety
 
 function generateSubstitutions() {
   const today = new Date().toISOString().split("T")[0];
+  const dayName = new Date().toLocaleString("en-US", { weekday: "long" });
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
@@ -364,16 +365,19 @@ function generateSubstitutions() {
     const substitutions = [];
     const alreadyAssigned = new Set();
 
-    const todaysSchedule = schedule.filter(e => absentTeachers[e.teacherUID]);
+    const todaysSchedule = schedule.filter(e => absentTeachers[e.teacherUID] && e.day === dayName);
+
+    console.log("\n📅 Day Today:", dayName);
+    console.log("😷 Absent Teachers:", absentTeachers);
+    console.log("📋 Today's Relevant Schedule:", todaysSchedule);
 
     todaysSchedule.forEach(entry => {
       const { teacherUID, day, time, class: cls, subject } = entry;
-      console.log("\n🔍 Looking for sub for", teacherList[teacherUID].name, "Class", cls, "Subject", subject);
+      console.log("\n🔍 Looking for sub for", teacherList[teacherUID]?.name || teacherUID, "Class", cls, "Subject", subject);
 
       let substitute = null;
       const candidates = Object.values(teacherList);
 
-      // Try same subject regular
       for (const t of candidates) {
         const slotKey = `${t.uid}-${day}-${time}`;
         const isBusy = busyTeachers.has(slotKey);
@@ -389,12 +393,13 @@ function generateSubstitutions() {
         }
       }
 
-      // Try any regular
       if (!substitute) {
         for (const t of candidates) {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(slotKey);
           const isUsed = alreadyAssigned.has(slotKey);
+
+          console.log(`🔄 Check (any subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
 
           if (!isBusy && !isUsed && t.role === "regular" && t.uid !== teacherUID) {
             substitute = t;
@@ -404,12 +409,13 @@ function generateSubstitutions() {
         }
       }
 
-      // Try wildcard
       if (!substitute) {
         for (const t of candidates) {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(slotKey);
           const isUsed = alreadyAssigned.has(slotKey);
+
+          console.log(`🔄 Check (wildcard) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
 
           if (!isBusy && !isUsed && t.role === "wildcard" && t.uid !== teacherUID) {
             substitute = t;
@@ -423,14 +429,18 @@ function generateSubstitutions() {
         const subSlot = `${substitute.uid}-${day}-${time}`;
         alreadyAssigned.add(subSlot);
         substitutions.push({
-          absent_teacher: teacherList[teacherUID].name,
+          absent_teacher: teacherList[teacherUID]?.name || teacherUID,
           class: cls,
+          time: time,
+          subject: subject,
           substitute_teacher: substitute.name
         });
       } else {
         substitutions.push({
-          absent_teacher: teacherList[teacherUID].name,
+          absent_teacher: teacherList[teacherUID]?.name || teacherUID,
           class: cls,
+          time: time,
+          subject: subject,
           substitute_teacher: "❌ No Available Sub"
         });
       }
@@ -438,14 +448,19 @@ function generateSubstitutions() {
 
     console.log("\n📦 Final Substitutions:", substitutions);
 
-    const updates = {};
-    substitutions.forEach((s, i) => {
-      updates[`substitutions/${i}`] = s;
-    });
+    if (substitutions.length > 0) {
+      const updates = {};
+      substitutions.forEach((s, i) => {
+        updates[`substitutions/${i}`] = s;
+      });
 
-    database.ref().update(updates).then(() => {
-      alert("✅ Substitutions generated!");
-      loadSubstitutions();
-    });
+      database.ref().update(updates).then(() => {
+        alert("✅ Substitutions generated!");
+        loadSubstitutions();
+      });
+    } else {
+      alert("⚠️ No substitutions could be generated.");
+    }
   });
 }
+
