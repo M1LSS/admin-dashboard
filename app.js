@@ -392,11 +392,21 @@ function generateSubstitutions() {
 
         console.log(`🔄 Check (same subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, subjectMatch: ${t.subject === subject}, role: ${t.role}`);
 
-        if (!isBusy && !isUsed && t.role === "regular" && t.subject === subject) {
-          substitute = t;
-          console.log("✅ Assigned (same subject):", t.name);
-          break;
-        }
+       if (!isBusy && !isUsed && t.role === "regular" && t.subject === subject) {
+  console.log(`✅ SHOULD assign ${t.name} (${t.uid})`);
+  substitute = t;
+  break;
+} else {
+  console.log(`⛔ Not assigning ${t.name} → Conditions:`, {
+    isBusy,
+    isUsed,
+    role: t.role,
+    subject: t.subject,
+    expectedSubject: subject,
+    uid: t.uid
+  });
+}
+
       }
 
       // Step 2: Regular teacher, any subject
