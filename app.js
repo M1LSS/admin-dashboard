@@ -186,35 +186,58 @@ function loadSubstitutions() {
 
 function loadSchedule() {
   const tbody = document.getElementById("scheduleTableBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
+
   database.ref("schedule").once("value", snapshot => {
     snapshot.forEach(child => {
-      const s = child.val();
+      const entry = child.val();
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${s.teacher}</td>
-        <td>${s.day}</td>
-        <td>${s.time}</td>
-        <td>${s.class}</td>
-        <td>${s.subject}</td>`;
+        <td>${entry.teacher || "-"}</td>
+        <td>${entry.day || "-"}</td>
+        <td>${entry.time || "-"}</td>
+        <td>${entry.class || "-"}</td>`;
       tbody.appendChild(row);
     });
   });
 }
-
 function populateTeacherDropdown() {
-  const dropdown = document.getElementById("scheduleTeacher");
-  if (!dropdown) return;
-
-  dropdown.innerHTML = `<option value="">Select Teacher</option>`;
+  const select = document.getElementById("teacherSelect");
+  if (!select) return;
 
   database.ref("teachers").once("value", snapshot => {
     snapshot.forEach(child => {
+      const uid = child.key;
       const teacher = child.val();
       const option = document.createElement("option");
-      option.value = teacher.name;
-      option.textContent = teacher.name;
-      dropdown.appendChild(option);
+      option.value = uid;
+      option.textContent = teacher.name || uid;
+      select.appendChild(option);
     });
+  });
+}
+
+function addSchedule() {
+  const teacherUID = document.getElementById("teacherSelect").value;
+  const day = document.getElementById("scheduleDay").value;
+  const time = document.getElementById("scheduleTime").value;
+  const className = document.getElementById("scheduleClass").value;
+
+  if (!teacherUID || !day || !time || !className) {
+    alert("Please fill in all fields");
+    return;
+  }
+
+  const scheduleData = {
+    teacher: teacherUID,
+    day,
+    time,
+    class: className
+  };
+
+  database.ref("schedule").push(scheduleData).then(() => {
+    alert("✅ Schedule added");
+    loadSchedule();
   });
 }
