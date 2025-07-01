@@ -26,6 +26,32 @@ window.addEventListener("DOMContentLoaded", () => {
   
 });
 
+const addTeacherForm = document.getElementById("addTeacherForm");
+  if (addTeacherForm) {
+    addTeacherForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const uid = document.getElementById("newUID").value.trim();
+      const name = document.getElementById("newName").value.trim();
+      const subject = document.getElementById("newSubject").value.trim();
+      const className = document.getElementById("newClass").value.trim();
+      const phone = document.getElementById("newPhone").value.trim();
+
+      if (!uid || !name || !subject || !className || !phone) return alert("All fields required");
+
+      firebase.database().ref("teachers/" + uid).set({
+        name,
+        subject,
+        class: className,
+        phone
+      }).then(() => {
+        alert("✅ Teacher added successfully!");
+        loadTeachers();
+        addTeacherForm.reset();
+      }).catch(console.error);
+    });
+  }
+});
+
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
   const attendanceRef = database.ref("attendance/" + today);
@@ -225,32 +251,6 @@ function showToast(message = "Summary updated") {
     toast.classList.remove("show");
   }, 2000); // Show for 2 seconds
 }
-
-const addTeacherForm = document.getElementById("addTeacherForm");
-  if (addTeacherForm) {
-    addTeacherForm.addEventListener("submit", e => {
-      e.preventDefault();
-      const uid = document.getElementById("newUID").value.trim();
-      const name = document.getElementById("newName").value.trim();
-      const subject = document.getElementById("newSubject").value.trim();
-      const className = document.getElementById("newClass").value.trim();
-      const phone = document.getElementById("newPhone").value.trim();
-
-      if (!uid || !name || !subject || !className || !phone) return alert("All fields required");
-
-      firebase.database().ref("teachers/" + uid).set({
-        name,
-        subject,
-        class: className,
-        phone
-      }).then(() => {
-        alert("✅ Teacher added successfully!");
-        loadTeachers();
-        addTeacherForm.reset();
-      }).catch(console.error);
-    });
-  }
-});
 
 function loadSchedule() {
   const table = document.getElementById("scheduleTableBody");
