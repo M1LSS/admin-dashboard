@@ -323,7 +323,9 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toISOString().split("T")[0];
+  console.log("🟢 generateSubstitutions() called");
+  const today = new Date().toLocaleDateString("en-CA");
+  console.log("📆 Today:", today);
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
