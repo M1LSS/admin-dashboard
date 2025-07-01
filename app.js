@@ -276,3 +276,5 @@ function deleteSchedule(key) {
     database.ref("schedule/" + key).remove().then(loadSchedule);
   }
 }
+
+});
