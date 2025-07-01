@@ -344,9 +344,9 @@ function generateSubstitutions() {
 
     const teacherList = {};
     teacherSnap.forEach(child => {
-      const uid = child.key.toUpperCase();
-      teacherList[uid] = { ...child.val(), uid };
-    });
+  const uid = child.key.toUpperCase();
+  teacherList[uid] = { uid, ...child.val() };  // include UID in value!
+});
 
     const allSchedules = [];
     schedSnap.forEach(child => {
