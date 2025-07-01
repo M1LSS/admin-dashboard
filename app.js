@@ -420,6 +420,11 @@ function generateSubstitutions() {
     });
 
     database.ref().update(updates).then(() => {
+      alert("✅ Substitutions generated!");
+      loadSubstitutions();
+    });
+  });
+}
 
 
 
