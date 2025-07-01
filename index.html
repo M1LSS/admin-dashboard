@@ -69,22 +69,14 @@
     </div>
 
     <div id="schedule" class="tab-content">
-      <h2>Assign Teacher Schedule</h2>
-<select id="teacherSelect">
-  <option value="">Select Teacher</option>
-</select>
-<select id="scheduleDay">
-  <option value="">Select Day</option>
-  <option>Monday</option>
-  <option>Tuesday</option>
-  <option>Wednesday</option>
-  <option>Thursday</option>
-  <option>Friday</option>
-</select>
-<input type="time" id="scheduleTime">
-<input type="text" id="scheduleClass" placeholder="Class (e.g. 5A)">
-<button onclick="addSchedule()">Add Schedule</button>
-
+      <h2>Teacher Schedule</h2>
+      <form id="addScheduleForm">
+        <select id="scheduleTeacher" required></select>
+        <input type="text" id="scheduleDay" placeholder="Day (e.g. Monday)" required />
+        <input type="text" id="scheduleTime" placeholder="Time (e.g. 08:00)" required />
+        <input type="text" id="scheduleClass" placeholder="Class (e.g. 5A)" required />
+        <input type="text" id="scheduleSubject" placeholder="Subject" required />
+        <button type="submit">Add Schedule</button>
       </form>
       <table>
         <thead>
