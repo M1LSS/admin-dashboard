@@ -13,9 +13,9 @@ window.addEventListener("DOMContentLoaded", () => {
   loadSubstitutions();
   loadSchedule();
   populateTeacherDropdown();
+  
   document.getElementById("addScheduleForm").addEventListener("submit", (e) => {
   e.preventDefault();
-
   const teacherUID = document.getElementById("scheduleTeacherSelect").value;
   const teacherName = document.getElementById("scheduleTeacherSelect").selectedOptions[0].textContent;
   const day = document.getElementById("scheduleDay").value;
@@ -295,3 +295,6 @@ function deleteSchedule(key) {
     database.ref("schedule/" + key).remove().then(loadSchedule);
   }
 }
+
+// ✅ Add this final closing brace:
+});
