@@ -19,38 +19,40 @@ window.addEventListener("DOMContentLoaded", () => {
 
   fetchSummary();
   setInterval(fetchSummary, 30000);
+
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
   loadSchedule();
-  
-});
 
-const addTeacherForm = document.getElementById("addTeacherForm");
-  if (addTeacherForm) {
-    addTeacherForm.addEventListener("submit", e => {
-      e.preventDefault();
-      const uid = document.getElementById("newUID").value.trim();
-      const name = document.getElementById("newName").value.trim();
-      const subject = document.getElementById("newSubject").value.trim();
-      const className = document.getElementById("newClass").value.trim();
-      const phone = document.getElementById("newPhone").value.trim();
+  document.getElementById("addTeacherForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const uid = document.getElementById("newUID").value.trim();
+    const name = document.getElementById("newName").value.trim();
+    const subject = document.getElementById("newSubject").value.trim();
+    const className = document.getElementById("newClass").value.trim();
+    const phone = document.getElementById("newPhone").value.trim();
 
-      if (!uid || !name || !subject || !className || !phone) return alert("All fields required");
+    if (!uid || !name || !subject || !className || !phone) {
+      alert("Please fill in all fields.");
+      return;
+    }
 
-      firebase.database().ref("teachers/" + uid).set({
-        name,
-        subject,
-        class: className,
-        phone
-      }).then(() => {
-        alert("✅ Teacher added successfully!");
-        loadTeachers();
-        addTeacherForm.reset();
-      }).catch(console.error);
+    const data = { name, subject, class: className, phone };
+    database.ref("teachers/" + uid).set(data).then(() => {
+      alert("✅ Teacher added!");
+      e.target.reset();
+      loadTeachers();
     });
-  }
+  });
 });
+
+function showToast(message = "Summary updated") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
 
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
@@ -61,9 +63,7 @@ function fetchSummary() {
 
     snapshot.forEach(child => {
       const data = child.val();
-      const key = child.key;
-      if (typeof data !== "object" || !data.status) return;
-
+      if (!data.status) return;
       if (data.status === "present") present++;
       else if (data.status === "absent") absent++;
       else if (data.status === "late") late++;
@@ -73,63 +73,50 @@ function fetchSummary() {
     document.getElementById("absent-count").innerText = absent;
     document.getElementById("late-count").innerText = late;
 
-    showToast("Summary updated");
+    showToast();
   });
 }
-
 
 function loadTeachers() {
   const tableBody = document.getElementById("teacher-table-body");
   tableBody.innerHTML = "";
 
   database.ref("teachers").once("value", snapshot => {
-    if (!snapshot.exists()) {
-      tableBody.innerHTML = `<tr><td colspan="6">No teacher data found</td></tr>`;
-      return;
-    }
-
     snapshot.forEach(child => {
       const uid = child.key;
       const teacher = child.val();
 
-      // Skip invalid entries (e.g. if value is not an object)
-      if (typeof teacher !== "object" || !teacher.name) return;
-
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td><input type="text" id="uid-${uid}" value="${uid}" disabled /></td>
-        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled /></td>
-        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled /></td>
-        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled /></td>
-        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled /></td>
+        <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
+        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
+        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
+        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled></td>
+        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled></td>
         <td>
           <button onclick="toggleEdit('${uid}', this)">Edit</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
-        </td>
-      `;
+        </td>`;
       tableBody.appendChild(row);
     });
   });
 }
 
-
 function toggleEdit(uid, button) {
-  const fields = ["uid", "name", "subject", "class", "phone"].map(field =>
-    document.getElementById(`${field}-${uid}`)
-  );
-
-  const isDisabled = fields[0].disabled;
+  const inputs = ["uid", "name", "subject", "class", "phone"].map(id => document.getElementById(`${id}-${uid}`));
+  const isDisabled = inputs[0].disabled;
 
   if (isDisabled) {
-    fields.forEach(input => input.disabled = false);
+    inputs.forEach(input => input.disabled = false);
     button.textContent = "Save";
   } else {
-    const newUid = fields[0].value.trim();
+    const [uidInput, nameInput, subjectInput, classInput, phoneInput] = inputs;
+    const newUid = uidInput.value.trim();
     const updatedData = {
-      name: fields[1].value.trim(),
-      subject: fields[2].value.trim(),
-      class: fields[3].value.trim(),
-      phone: fields[4].value.trim()
+      name: nameInput.value.trim(),
+      subject: subjectInput.value.trim(),
+      class: classInput.value.trim(),
+      phone: phoneInput.value.trim()
     };
 
     if (newUid !== uid) {
@@ -144,53 +131,42 @@ function toggleEdit(uid, button) {
 }
 
 function deleteTeacher(uid) {
-  if (confirm("Are you sure you want to delete this teacher?")) {
-    database.ref("teachers/" + uid).remove()
-      .then(() => loadTeachers());
+  if (confirm("Are you sure to delete this teacher?")) {
+    database.ref("teachers/" + uid).remove().then(loadTeachers);
   }
 }
 
 function loadAttendance() {
   const dateInput = document.getElementById("dateFilter");
-  const selectedDate = dateInput?.value || new Date().toISOString().split('T')[0];
-  const tableBody = document.getElementById("attendanceTable");
-  tableBody.innerHTML = "";
+  const date = dateInput?.value || new Date().toISOString().split("T")[0];
 
-  database.ref("attendance/" + selectedDate).once("value", snapshot => {
-    if (!snapshot.exists()) {
-      tableBody.innerHTML = `<tr><td colspan="4">No data found for ${selectedDate}</td></tr>`;
-      return;
-    }
+  const tbody = document.getElementById("attendanceTable");
+  tbody.innerHTML = "";
 
+  database.ref("attendance/" + date).once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
       const record = child.val();
+      if (!record.status) return;
 
-      // Skip if not a proper record
-      if (!record || typeof record !== 'object') return;
-
-      // Get teacher name (fallback to UID if name not found)
       database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
-        const name = nameSnap.exists() ? nameSnap.val() : uid;
+        const name = nameSnap.val() || uid;
 
-        const row = `
-          <tr>
-            <td>${name}</td>
-            <td>${record.status || "absent"}</td>
-            <td>${record.punch_in || "-"}</td>
-            <td>${record.punch_out || "-"}</td>
-          </tr>
-        `;
-        tableBody.innerHTML += row;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${record.status}</td>
+          <td>${record.punch_in || "-"}</td>
+          <td>${record.punch_out || "-"}</td>`;
+        tbody.appendChild(row);
       });
     });
   });
 }
 
-
 function loadSubstitutions() {
-  const tableBody = document.getElementById("substitutionTableBody");
-  tableBody.innerHTML = "";
+  const tbody = document.getElementById("substitutionTableBody");
+  tbody.innerHTML = "";
 
   database.ref("substitutions").once("value", snapshot => {
     snapshot.forEach(child => {
@@ -199,77 +175,28 @@ function loadSubstitutions() {
       row.innerHTML = `
         <td>${sub.absent_teacher || "-"}</td>
         <td>${sub.class || "-"}</td>
-        <td>${sub.substitute_teacher || "-"}</td>
-      `;
-      tableBody.appendChild(row);
+        <td>${sub.substitute_teacher || "-"}</td>`;
+      tbody.appendChild(row);
     });
   });
 }
 
-document.getElementById("addTeacherForm").addEventListener("submit", function (e) {
-  e.preventDefault();
-
-  const uid = document.getElementById("newUID").value.trim().toUpperCase();
-  const name = document.getElementById("newName").value.trim();
-  const subject = document.getElementById("newSubject").value.trim();
-  const className = document.getElementById("newClass").value.trim();
-  const phone = document.getElementById("newPhone").value.trim();
-
-  // Basic validation
-  if (!uid || !name || !subject || !className || !phone) {
-    alert("❗ Please fill in all fields.");
-    return;
-  }
-
-  // Check if UID already exists
-  database.ref("teachers/" + uid).get().then(snapshot => {
-    if (snapshot.exists()) {
-      alert("⚠️ A teacher with this UID already exists.");
-    } else {
-      database.ref("teachers/" + uid).set({
-        name: name,
-        subject: subject,
-        class: className,
-        phone: phone
-      }).then(() => {
-        alert("✅ Teacher added successfully.");
-        document.getElementById("addTeacherForm").reset();
-        loadTeachers();
-      }).catch(error => {
-        alert("❌ Error adding teacher: " + error.message);
-      });
-    }
-  });
-});
-
-function showToast(message = "Summary updated") {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.add("show");
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-  }, 2000); // Show for 2 seconds
-}
-
 function loadSchedule() {
-  const table = document.getElementById("scheduleTableBody");
-  table.innerHTML = "";
-  firebase.database().ref("schedules").once("value", snapshot => {
-    snapshot.forEach(teacher => {
-      const uid = teacher.key;
-      const entries = teacher.val();
-      entries.forEach(item => {
-        const row = `
-          <tr>
-            <td>${uid}</td>
-            <td>${item.day}</td>
-            <td>${item.time}</td>
-            <td>${item.class}</td>
-            <td>${item.subject}</td>
-          </tr>`;
-        table.innerHTML += row;
-      });
+  const tbody = document.getElementById("scheduleTableBody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  database.ref("schedule").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const entry = child.val();
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${entry.teacher || "-"}</td>
+        <td>${entry.day || "-"}</td>
+        <td>${entry.time || "-"}</td>
+        <td>${entry.class || "-"}</td>
+        <td>${entry.subject || "-"}</td>`;
+      tbody.appendChild(row);
     });
   });
 }
