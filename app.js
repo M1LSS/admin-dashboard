@@ -7,6 +7,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
 
+  populateTeacherDropdown();
+  
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
       const tabId = btn.getAttribute("data-tab");
@@ -213,6 +215,23 @@ function loadSchedule() {
     });
   });
 }
+
+function populateTeacherDropdown() {
+  const teacherSelect = document.getElementById("scheduleTeacherSelect");
+  teacherSelect.innerHTML = `<option disabled selected value="">Select Teacher</option>`;
+
+  database.ref("teachers").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const teacher = child.val();
+      const option = document.createElement("option");
+      option.value = uid;
+      option.textContent = teacher.name || uid;
+      teacherSelect.appendChild(option);
+    });
+  });
+}
+
 
 function toggleEditSchedule(key, button) {
   const fields = ["teacher", "day", "time", "class", "subject"].map(id => document.getElementById(`${id}-${key}`));
