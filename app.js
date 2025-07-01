@@ -322,11 +322,9 @@ function deleteSchedule(key) {
   }
 }
 
-// Smart Teacher Attendance Dashboard - Full generateSubstitutions with Debug and Safety
-
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA");
-  const dayName = "Monday";
+  const today = new Date().toLocaleDateString("en-CA"); // e.g., "2025-07-02"
+  const dayName = new Date().toLocaleString("en-US", { weekday: "long" });
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
@@ -338,7 +336,7 @@ function generateSubstitutions() {
   ]).then(([attSnap, schedSnap, teacherSnap]) => {
     const absentTeachers = {};
     attSnap.forEach(child => {
-      const status = child.val().status;
+      const status = child.val().status?.toLowerCase();
       if (status === "absent" || status === "late") {
         absentTeachers[child.key.toUpperCase()] = true;
       }
@@ -358,7 +356,8 @@ function generateSubstitutions() {
     });
 
     const absentSchedules = allSchedules.filter(item =>
-      absentTeachers[(item.teacherUID || "").toUpperCase()]
+      absentTeachers[(item.teacherUID || "").toUpperCase()] &&
+      item.day === dayName
     );
     console.log("📋 Absent Teacher Schedules:", absentSchedules);
 
@@ -373,16 +372,16 @@ function generateSubstitutions() {
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
-          if (s.teacherUID) {
-            busyTeachers.add(s.teacherUID.toUpperCase());
-          } else if (s.teacher) {
+          const uid = (s.teacherUID || "").toUpperCase();
+          if (uid) busyTeachers.add(uid);
+          else {
             const match = Object.values(teacherList).find(t => t.name === s.teacher);
             if (match) busyTeachers.add(match.uid);
           }
         }
       });
 
-      console.log(`⏰ Time: ${time}, Day: ${day}, Busy UIDs:`, Array.from(busyTeachers));
+      console.log(`⏰ Time: ${time}, Day: ${day}, Busy UIDs:`, [...busyTeachers]);
 
       const alreadyAssigned = usedSlots.map(s => `${s.uid}-${day}-${time}`);
       const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
@@ -397,21 +396,10 @@ function generateSubstitutions() {
         const isUsed = alreadyAssigned.includes(slotKey);
         const subjectMatch = t.subject === subject;
 
-        console.log(`🔄 Check (same subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, subjectMatch: ${subjectMatch}, role: ${t.role}`);
-
         if (!isBusy && !isUsed && t.role === "regular" && subjectMatch) {
-          console.log(`✅ SHOULD assign ${t.name} (${t.uid})`);
+          console.log(`✅ Assigned (same subject): ${t.name}`);
           substitute = t;
           break;
-        } else {
-          console.log(`⛔ Not assigning ${t.name} → Conditions:`, {
-            isBusy,
-            isUsed,
-            role: t.role,
-            subject: t.subject,
-            expectedSubject: subject,
-            uid: t.uid
-          });
         }
       }
 
@@ -421,11 +409,8 @@ function generateSubstitutions() {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(t.uid);
           const isUsed = alreadyAssigned.includes(slotKey);
-
-          console.log(`🔄 Check (any subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
-
           if (!isBusy && !isUsed && t.role === "regular") {
-            console.log("✅ Assigned (any subject):", t.name);
+            console.log(`✅ Assigned (any subject): ${t.name}`);
             substitute = t;
             break;
           }
@@ -438,11 +423,8 @@ function generateSubstitutions() {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(t.uid);
           const isUsed = alreadyAssigned.includes(slotKey);
-
-          console.log(`🔄 Check (wildcard) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, role: ${t.role}`);
-
           if (!isBusy && !isUsed && t.role === "wildcard") {
-            console.log("✅ Assigned (wildcard):", t.name);
+            console.log(`✅ Assigned (wildcard): ${t.name}`);
             substitute = t;
             break;
           }
@@ -457,13 +439,14 @@ function generateSubstitutions() {
       substitutions.push({
         absent_teacher: teacherList[teacherUID]?.name || teacherUID,
         class: cls,
+        time: time,
+        subject: subject,
         substitute_teacher: subName
       });
     });
 
     console.log("📦 Final Substitutions:", substitutions);
 
-    // Store to Firebase
     const updates = {};
     substitutions.forEach((s, i) => {
       updates[`substitutions/${i}`] = s;
@@ -477,5 +460,4 @@ function generateSubstitutions() {
     });
   });
 }
-
 
