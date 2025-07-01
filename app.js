@@ -241,8 +241,6 @@ document.getElementById("scheduleTeacherSelect").addEventListener("change", func
   });
 });
 
-
-
 function toggleEditSchedule(key, button) {
   const fields = ["teacher", "day", "time", "class", "subject"].map(id => document.getElementById(`${id}-${key}`));
   const isDisabled = fields[0].disabled;
