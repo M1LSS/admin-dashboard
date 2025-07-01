@@ -342,69 +342,56 @@ function generateSubstitutions() {
       teacherList[child.key] = child.val();
     });
 
-    const absentSchedules = [];
+    const schedule = [];
     schedSnap.forEach(child => {
       const data = child.val();
       if (absentTeachers[data.teacherUID]) {
-        absentSchedules.push({ ...data, key: child.key });
+        schedule.push({ ...data, key: child.key });
       }
     });
 
     const usedSlots = []; // Track assigned substitute/time
-    const substitutions = [];
+    const substitutions = []; // 🛠 Fix: Declare substitutions list
 
-    absentSchedules.forEach(entry => {
-      const { teacherUID, day, time, class: cls, subject } = entry;
+schedule.forEach(entry => {
+  const { teacherUID, day, time, class: cls, subject } = entry;
 
-      // Get all teachers already scheduled at this day + time
-      const scheduledAtSameTime = new Set();
-      schedSnap.forEach(child => {
-        const data = child.val();
-        if (data.day === day && data.time === time) {
-          scheduledAtSameTime.add(data.teacherUID);
-        }
-      });
+  const alreadyAssigned = usedSlots.map(s => ${s.uid}-${s.day}-${s.time});
 
-      // Also track substitutions already made
-      const alreadyAssigned = usedSlots.map(s => `${s.uid}-${s.day}-${s.time}`);
+  // Find available regular substitute
+  let substitute = Object.entries(teacherList).find(([uid, t]) => {
+    const slotKey = ${uid}-${day}-${time};
+    return !alreadyAssigned.includes(slotKey) &&
+           uid !== teacherUID &&
+           t.subject === subject &&
+           t.role === "regular";
+  });
 
-      // Try regular teachers with same subject
-      let substitute = Object.entries(teacherList).find(([uid, t]) => {
-        const slotKey = `${uid}-${day}-${time}`;
-        return !scheduledAtSameTime.has(uid) &&
-               !alreadyAssigned.includes(slotKey) &&
-               uid !== teacherUID &&
-               t.subject === subject &&
-               t.role === "regular";
-      });
-
-      // Fallback to wildcard
-      if (!substitute) {
-        substitute = Object.entries(teacherList).find(([uid, t]) => {
-          const slotKey = `${uid}-${day}-${time}`;
-          return !scheduledAtSameTime.has(uid) &&
-                 !alreadyAssigned.includes(slotKey) &&
-                 t.role === "wildcard";
-        });
-      }
-
-      const subName = substitute ? substitute[1].name : "❌ No Available Sub";
-
-      if (substitute) {
-        usedSlots.push({ uid: substitute[0], day, time }); // prevent reuse
-      }
-
-      substitutions.push({
-        absent_teacher: teacherList[teacherUID].name,
-        class: cls,
-        substitute_teacher: subName
-      });
+  // Fallback: wildcard
+  if (!substitute) {
+    substitute = Object.entries(teacherList).find(([uid, t]) => {
+      const slotKey = ${uid}-${day}-${time};
+      return !alreadyAssigned.includes(slotKey) &&
+             t.role === "wildcard";
     });
+  }
 
-    // Save to Firebase
+  const subName = substitute ? substitute[1].name : "❌ No Available Sub";
+  if (substitute) {
+    usedSlots.push({ uid: substitute[0], day, time }); // reserve slot
+  }
+
+  substitutions.push({
+    absent_teacher: teacherList[teacherUID].name,
+    class: cls,
+    substitute_teacher: subName
+  });
+});
+
+    // Store to Firebase
     const updates = {};
     substitutions.forEach((s, i) => {
-      updates[`substitutions/${i}`] = s;
+      updates[substitutions/${i}] = s;
     });
 
     database.ref().update(updates).then(() => {
@@ -412,5 +399,4 @@ function generateSubstitutions() {
       loadSubstitutions();
     });
   });
-}
 
