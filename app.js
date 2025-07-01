@@ -317,3 +317,79 @@ function deleteSchedule(key) {
     database.ref("schedule/" + key).remove().then(loadSchedule);
   }
 }
+
+function generateSubstitutions() {
+  const today = new Date().toISOString().split("T")[0];
+  const attendanceRef = database.ref("attendance/" + today);
+  const scheduleRef = database.ref("schedule");
+  const teacherRef = database.ref("teachers");
+
+  Promise.all([
+    attendanceRef.once("value"),
+    scheduleRef.once("value"),
+    teacherRef.once("value")
+  ]).then(([attSnap, schedSnap, teacherSnap]) => {
+    const absentTeachers = {};
+    attSnap.forEach(child => {
+      const status = child.val().status;
+      if (status === "absent" || status === "late") {
+        absentTeachers[child.key] = status;
+      }
+    });
+
+    const teacherList = {};
+    teacherSnap.forEach(child => {
+      teacherList[child.key] = child.val();
+    });
+
+    const schedule = [];
+    schedSnap.forEach(child => {
+      const data = child.val();
+      if (absentTeachers[data.teacherUID]) {
+        schedule.push({ ...data, key: child.key });
+      }
+    });
+
+    const substitutions = [];
+
+    schedule.forEach(entry => {
+      const { teacherUID, day, time, class: cls, subject } = entry;
+
+      // Filter teachers not scheduled at that time
+      const busyUIDs = schedule.filter(s => s.time === time && s.day === day)
+                               .map(s => s.teacherUID);
+
+      let substitute = Object.entries(teacherList).find(([uid, t]) => {
+        return !busyUIDs.includes(uid) &&
+               uid !== teacherUID &&
+               t.subject === subject &&
+               t.role === "regular";
+      });
+
+      // Fallback: wildcard
+      if (!substitute) {
+        substitute = Object.entries(teacherList).find(([uid, t]) => {
+          return !busyUIDs.includes(uid) && t.role === "wildcard";
+        });
+      }
+
+      const subName = substitute ? substitute[1].name : "❌ No Available Sub";
+      substitutions.push({
+        absent_teacher: teacherList[teacherUID].name,
+        class: cls,
+        substitute_teacher: subName
+      });
+    });
+
+    // Store to Firebase
+    const updates = {};
+    substitutions.forEach((s, i) => {
+      updates[`substitutions/${i}`] = s;
+    });
+
+    database.ref().update(updates).then(() => {
+      alert("✅ Substitutions generated!");
+      loadSubstitutions();
+    });
+  });
+}
