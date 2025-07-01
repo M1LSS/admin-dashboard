@@ -1,5 +1,8 @@
-// Firebase is assumed to be initialized from firebase-config.js
+// Smart Teacher Attendance Dashboard JS
 
+// Firebase is assumed to be initialized via firebase-config.js
+
+// Tab switching
 window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
@@ -16,11 +19,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   fetchSummary();
   setInterval(fetchSummary, 30000);
+
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
   loadSchedule();
-  populateTeacherDropdown();
 
   document.getElementById("addTeacherForm").addEventListener("submit", e => {
     e.preventDefault();
@@ -40,48 +43,37 @@ window.addEventListener("DOMContentLoaded", () => {
       alert("✅ Teacher added!");
       e.target.reset();
       loadTeachers();
-      populateTeacherDropdown();
     });
-  });
-
-  document.getElementById("scheduleForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const teacher = document.getElementById("scheduleTeacher").value;
-    const day = document.getElementById("scheduleDay").value;
-    const time = document.getElementById("scheduleTime").value;
-    const className = document.getElementById("scheduleClass").value;
-    const subject = document.getElementById("scheduleSubject").value;
-
-    if (!teacher || !day || !time || !className || !subject) {
-      alert("Please fill in all schedule fields.");
-      return;
-    }
-
-    const newRef = database.ref("schedule").push();
-    newRef.set({ teacher, day, time, class: className, subject })
-      .then(() => {
-        alert("✅ Schedule added!");
-        e.target.reset();
-        loadSchedule();
-      });
   });
 });
 
+function showToast(message = "Summary updated") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+}
+
 function fetchSummary() {
   const today = new Date().toISOString().split('T')[0];
-  const ref = database.ref("attendance/" + today);
+  const attendanceRef = database.ref("attendance/" + today);
 
-  ref.once("value", snapshot => {
+  attendanceRef.once("value", snapshot => {
     let present = 0, absent = 0, late = 0;
+
     snapshot.forEach(child => {
       const data = child.val();
+      if (!data.status) return;
       if (data.status === "present") present++;
       else if (data.status === "absent") absent++;
       else if (data.status === "late") late++;
     });
+
     document.getElementById("present-count").innerText = present;
     document.getElementById("absent-count").innerText = absent;
     document.getElementById("late-count").innerText = late;
+
+    showToast();
   });
 }
 
@@ -92,14 +84,15 @@ function loadTeachers() {
   database.ref("teachers").once("value", snapshot => {
     snapshot.forEach(child => {
       const uid = child.key;
-      const t = child.val();
+      const teacher = child.val();
+
       const row = document.createElement("tr");
       row.innerHTML = `
         <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
-        <td><input type="text" id="name-${uid}" value="${t.name || ''}" disabled></td>
-        <td><input type="text" id="subject-${uid}" value="${t.subject || ''}" disabled></td>
-        <td><input type="text" id="class-${uid}" value="${t.class || ''}" disabled></td>
-        <td><input type="text" id="phone-${uid}" value="${t.phone || ''}" disabled></td>
+        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
+        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
+        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled></td>
+        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled></td>
         <td>
           <button onclick="toggleEdit('${uid}', this)">Edit</button>
           <button onclick="deleteTeacher('${uid}')">Delete</button>
@@ -109,17 +102,17 @@ function loadTeachers() {
   });
 }
 
-function toggleEdit(uid, btn) {
+function toggleEdit(uid, button) {
   const inputs = ["uid", "name", "subject", "class", "phone"].map(id => document.getElementById(`${id}-${uid}`));
-  const disabled = inputs[0].disabled;
+  const isDisabled = inputs[0].disabled;
 
-  if (disabled) {
-    inputs.forEach(i => i.disabled = false);
-    btn.textContent = "Save";
+  if (isDisabled) {
+    inputs.forEach(input => input.disabled = false);
+    button.textContent = "Save";
   } else {
     const [uidInput, nameInput, subjectInput, classInput, phoneInput] = inputs;
     const newUid = uidInput.value.trim();
-    const newData = {
+    const updatedData = {
       name: nameInput.value.trim(),
       subject: subjectInput.value.trim(),
       class: classInput.value.trim(),
@@ -127,69 +120,62 @@ function toggleEdit(uid, btn) {
     };
 
     if (newUid !== uid) {
-      database.ref("teachers/" + newUid).set(newData)
+      database.ref("teachers/" + newUid).set(updatedData)
         .then(() => database.ref("teachers/" + uid).remove())
         .then(() => loadTeachers());
     } else {
-      database.ref("teachers/" + uid).update(newData)
+      database.ref("teachers/" + uid).update(updatedData)
         .then(() => loadTeachers());
     }
   }
 }
 
 function deleteTeacher(uid) {
-  if (confirm("Are you sure?")) {
+  if (confirm("Are you sure to delete this teacher?")) {
     database.ref("teachers/" + uid).remove().then(loadTeachers);
   }
 }
 
-function loadSchedule() {
-  const tbody = document.getElementById("scheduleTableBody");
-  if (!tbody) return;
+function loadAttendance() {
+  const dateInput = document.getElementById("dateFilter");
+  const date = dateInput?.value || new Date().toISOString().split("T")[0];
+
+  const tbody = document.getElementById("attendanceTable");
   tbody.innerHTML = "";
 
-  database.ref("schedule").once("value", snapshot => {
-    const entries = [];
+  database.ref("attendance/" + date).once("value", snapshot => {
     snapshot.forEach(child => {
-      const entry = child.val();
-      entries.push(entry);
-    });
+      const uid = child.key;
+      const record = child.val();
+      if (!record.status) return;
 
-    // Fetch all teachers once to avoid repeated queries
-    database.ref("teachers").once("value", teacherSnap => {
-      const teachers = teacherSnap.val() || {};
-
-      entries.forEach(entry => {
-        const teacher = teachers[entry.teacher] || {};
-        const teacherName = teacher.name || entry.teacher;
-        const subject = teacher.subject || "-";
+      database.ref("teachers/" + uid + "/name").once("value", nameSnap => {
+        const name = nameSnap.val() || uid;
 
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${teacherName}</td>
-          <td>${entry.day || "-"}</td>
-          <td>${entry.time || "-"}</td>
-          <td>${entry.class || "-"}</td>
-          <td>${subject}</td>
-        `;
+          <td>${name}</td>
+          <td>${record.status}</td>
+          <td>${record.punch_in || "-"}</td>
+          <td>${record.punch_out || "-"}</td>`;
         tbody.appendChild(row);
       });
     });
   });
 }
 
-
 function loadSubstitutions() {
   const tbody = document.getElementById("substitutionTableBody");
   tbody.innerHTML = "";
-  database.ref("substitutions").once("value", snap => {
-    snap.forEach(child => {
+
+  database.ref("substitutions").once("value", snapshot => {
+    snapshot.forEach(child => {
       const sub = child.val();
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${sub.absent_teacher || '-'}</td>
-        <td>${sub.class || '-'}</td>
-        <td>${sub.substitute_teacher || '-'}</td>`;
+        <td>${sub.absent_teacher || "-"}</td>
+        <td>${sub.class || "-"}</td>
+        <td>${sub.substitute_teacher || "-"}</td>`;
       tbody.appendChild(row);
     });
   });
@@ -203,65 +189,53 @@ function loadSchedule() {
   database.ref("schedule").once("value", snapshot => {
     snapshot.forEach(child => {
       const entry = child.val();
-      const teacherUID = entry.teacher;
+      const key = child.key;
+      const row = document.createElement("tr");
 
-      // Fetch teacher details to get name and subject
-      database.ref("teachers/" + teacherUID).once("value", teacherSnap => {
-        const teacher = teacherSnap.val();
-        const teacherName = teacher?.name || teacherUID;
-        const subject = teacher?.subject || "-";
+      const teacherName = entry.teacher || "-";
+      const day = entry.day || "-";
+      const time = entry.time || "-";
+      const className = entry.class || "-";
+      const subject = entry.subject || "-";
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${teacherName}</td>
-          <td>${entry.day || "-"}</td>
-          <td>${entry.time || "-"}</td>
-          <td>${entry.class || "-"}</td>
-          <td>${subject}</td>
-        `;
-        tbody.appendChild(row);
-      });
+      row.innerHTML = `
+        <td><input type="text" id="teacher-${key}" value="${teacherName}" disabled></td>
+        <td><input type="text" id="day-${key}" value="${day}" disabled></td>
+        <td><input type="text" id="time-${key}" value="${time}" disabled></td>
+        <td><input type="text" id="class-${key}" value="${className}" disabled></td>
+        <td><input type="text" id="subject-${key}" value="${subject}" disabled></td>
+        <td>
+          <button onclick="toggleEditSchedule('${key}', this)">Edit</button>
+          <button onclick="deleteSchedule('${key}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
     });
   });
 }
 
+function toggleEditSchedule(key, button) {
+  const fields = ["teacher", "day", "time", "class", "subject"].map(id => document.getElementById(`${id}-${key}`));
+  const isDisabled = fields[0].disabled;
 
-function populateTeacherDropdown() {
-  const select = document.getElementById("teacherSelect");
-  if (!select) return;
-
-  database.ref("teachers").once("value", snapshot => {
-    snapshot.forEach(child => {
-      const uid = child.key;
-      const teacher = child.val();
-      const option = document.createElement("option");
-      option.value = uid;
-      option.textContent = teacher.name || uid;
-      select.appendChild(option);
-    });
-  });
-}
-
-function addSchedule() {
-  const teacherUID = document.getElementById("teacherSelect").value;
-  const day = document.getElementById("scheduleDay").value;
-  const time = document.getElementById("scheduleTime").value;
-  const className = document.getElementById("scheduleClass").value;
-
-  if (!teacherUID || !day || !time || !className) {
-    alert("Please fill in all fields");
-    return;
+  if (isDisabled) {
+    fields.forEach(f => f.disabled = false);
+    button.textContent = "Save";
+  } else {
+    const [teacherInput, dayInput, timeInput, classInput, subjectInput] = fields;
+    const updated = {
+      teacher: teacherInput.value.trim(),
+      day: dayInput.value.trim(),
+      time: timeInput.value.trim(),
+      class: classInput.value.trim(),
+      subject: subjectInput.value.trim()
+    };
+    database.ref("schedule/" + key).update(updated).then(loadSchedule);
   }
+}
 
-  const scheduleData = {
-    teacher: teacherUID,
-    day,
-    time,
-    class: className
-  };
-
-  database.ref("schedule").push(scheduleData).then(() => {
-    alert("✅ Schedule added");
-    loadSchedule();
-  });
+function deleteSchedule(key) {
+  if (confirm("Delete this schedule?")) {
+    database.ref("schedule/" + key).remove().then(loadSchedule);
+  }
 }
