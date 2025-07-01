@@ -129,35 +129,35 @@ function loadTeachers() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
-        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
-        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
-        <td><input type="text" id="class-${uid}" value="${teacher.class || ""}" disabled></td>
-        <td><input type="text" id="phone-${uid}" value="${teacher.phone || ""}" disabled></td>
-        <td>
-          <button onclick="toggleEdit('${uid}', this)">Edit</button>
-          <button onclick="deleteTeacher('${uid}')">Delete</button>
-        </td>`;
+  <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
+  <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
+  <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
+  <td><input type="text" id="role-${uid}" value="${teacher.role || ""}" disabled></td>
+  <td>
+    <button onclick="toggleEdit('${uid}', this)">Edit</button>
+    <button onclick="deleteTeacher('${uid}')">Delete</button>
+  </td>`;
+
       tableBody.appendChild(row);
     });
   });
 }
 
 function toggleEdit(uid, button) {
-  const inputs = ["uid", "name", "subject", "class", "phone"].map(id => document.getElementById(`${id}-${uid}`));
+ const inputs = ["uid", "name", "subject", "role"].map(id => document.getElementById(`${id}-${uid}`));
   const isDisabled = inputs[0].disabled;
 
   if (isDisabled) {
     inputs.forEach(input => input.disabled = false);
     button.textContent = "Save";
   } else {
-    const [uidInput, nameInput, subjectInput, classInput, phoneInput] = inputs;
-    const newUid = uidInput.value.trim();
-    const updatedData = {
-      name: nameInput.value.trim(),
-      subject: subjectInput.value.trim(),
-      class: classInput.value.trim(),
-      phone: phoneInput.value.trim()
+    const [uidInput, nameInput, subjectInput, roleInput] = inputs;
+const updatedData = {
+  name: nameInput.value.trim(),
+  subject: subjectInput.value.trim(),
+  role: roleInput.value.trim()
+};
+
     };
 
     if (newUid !== uid) {
