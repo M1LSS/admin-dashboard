@@ -351,6 +351,7 @@ function generateSubstitutions() {
     });
 
     const usedSlots = []; // Track assigned substitute/time
+    const substitutions = []; // 🛠 Fix: Declare substitutions list
 
 schedule.forEach(entry => {
   const { teacherUID, day, time, class: cls, subject } = entry;
@@ -386,7 +387,6 @@ schedule.forEach(entry => {
     substitute_teacher: subName
   });
 });
-
 
     // Store to Firebase
     const updates = {};
