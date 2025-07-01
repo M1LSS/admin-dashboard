@@ -14,6 +14,9 @@ window.addEventListener("DOMContentLoaded", () => {
       tabs.forEach(tab => tab.classList.remove("active"));
       btn.classList.add("active");
       document.getElementById(tabId).classList.add("active");
+
+      loadTeacherDropdown();
+
     });
   });
 
@@ -24,6 +27,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadAttendance();
   loadSubstitutions();
   loadSchedule();
+  
 
   document.getElementById("addTeacherForm").addEventListener("submit", e => {
     e.preventDefault();
@@ -197,6 +201,25 @@ function loadSchedule() {
         <td>${entry.class || "-"}</td>
         <td>${entry.subject || "-"}</td>`;
       tbody.appendChild(row);
+    });
+  });
+}
+
+function loadTeacherDropdown() {
+  const select = document.getElementById("scheduleTeacherSelect");
+  if (!select) return;
+
+  select.innerHTML = `<option disabled selected>Select Teacher</option>`;
+
+  database.ref("teachers").once("value", snapshot => {
+    snapshot.forEach(child => {
+      const uid = child.key;
+      const name = child.val().name || uid;
+
+      const option = document.createElement("option");
+      option.value = uid;
+      option.textContent = name;
+      select.appendChild(option);
     });
   });
 }
