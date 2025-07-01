@@ -323,8 +323,9 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA"); // e.g., "2025-07-02"
-  const dayName = new Date().toLocaleString("en-US", { weekday: "long" });
+  const today = new Date().toLocaleDateString("en-CA");
+  const dayName = "Monday"; // You can auto-detect from today if needed
+
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
@@ -336,7 +337,7 @@ function generateSubstitutions() {
   ]).then(([attSnap, schedSnap, teacherSnap]) => {
     const absentTeachers = {};
     attSnap.forEach(child => {
-      const status = child.val().status?.toLowerCase();
+      const status = child.val().status;
       if (status === "absent" || status === "late") {
         absentTeachers[child.key.toUpperCase()] = true;
       }
@@ -356,8 +357,7 @@ function generateSubstitutions() {
     });
 
     const absentSchedules = allSchedules.filter(item =>
-      absentTeachers[(item.teacherUID || "").toUpperCase()] &&
-      item.day === dayName
+      absentTeachers[(item.teacherUID || "").toUpperCase()]
     );
     console.log("📋 Absent Teacher Schedules:", absentSchedules);
 
@@ -372,65 +372,63 @@ function generateSubstitutions() {
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
-          const uid = (s.teacherUID || "").toUpperCase();
-          if (uid) busyTeachers.add(uid);
-          else {
+          if (s.teacherUID) {
+            busyTeachers.add(s.teacherUID.toUpperCase());
+          } else if (s.teacher) {
             const match = Object.values(teacherList).find(t => t.name === s.teacher);
             if (match) busyTeachers.add(match.uid);
           }
         }
       });
 
-      console.log(`⏰ Time: ${time}, Day: ${day}, Busy UIDs:`, [...busyTeachers]);
+      console.log(`⏰ Time: ${time}, Day: ${day}, Busy UIDs:`, Array.from(busyTeachers));
 
-      const alreadyAssigned = usedSlots.map(s => `${s.uid}-${day}-${time}`);
       const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
       let substitute = null;
 
       console.log(`🔍 Looking for sub for ${teacherList[teacherUID]?.name || teacherUID}, Class ${cls}, Subject ${subject}`);
 
-      // Step 1: Same subject & free
-substitute = candidates.find(t =>
-  !busyTeachers.has(t.uid) &&
-  !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
-  t.role === "regular" &&
-  t.subject === subject
-);
+      // Step 1: Regular teacher, same subject
+      substitute = candidates.find(t =>
+        !busyTeachers.has(t.uid) &&
+        !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+        t.role === "regular" &&
+        t.subject === subject
+      );
 
-// Step 2: Any subject & free
-if (!substitute) {
-  substitute = candidates.find(t =>
-    !busyTeachers.has(t.uid) &&
-    !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
-    t.role === "regular"
-  );
-}
+      // Step 2: Any regular teacher
+      if (!substitute) {
+        substitute = candidates.find(t =>
+          !busyTeachers.has(t.uid) &&
+          !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+          t.role === "regular"
+        );
+      }
 
-// Step 3: Wildcard & free
-if (!substitute) {
-  substitute = candidates.find(t =>
-    !busyTeachers.has(t.uid) &&
-    !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
-    t.role === "wildcard"
-  );
-}
+      // Step 3: Wildcard
+      if (!substitute) {
+        substitute = candidates.find(t =>
+          !busyTeachers.has(t.uid) &&
+          !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+          t.role === "wildcard"
+        );
+      }
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
       if (substitute) {
-        usedSlots.push({ uid: substitute.uid, day, time }); // reserve slot
+        usedSlots.push({ uid: substitute.uid, day, time });
       }
 
       substitutions.push({
         absent_teacher: teacherList[teacherUID]?.name || teacherUID,
         class: cls,
-        time: time,
-        subject: subject,
         substitute_teacher: subName
       });
     });
 
     console.log("📦 Final Substitutions:", substitutions);
 
+    // Save to Firebase
     const updates = {};
     substitutions.forEach((s, i) => {
       updates[`substitutions/${i}`] = s;
@@ -444,4 +442,5 @@ if (!substitute) {
     });
   });
 }
+
 
