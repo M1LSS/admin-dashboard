@@ -6,7 +6,6 @@
 window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
-
   populateTeacherDropdown();
   
   buttons.forEach(btn => {
