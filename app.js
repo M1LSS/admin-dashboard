@@ -322,7 +322,7 @@ function deleteSchedule(key) {
   }
 }
 
-// Smart Teacher Attendance Dashboard - Auto Substitution Logic (Patched)
+// Smart Teacher Attendance Dashboard - Auto Substitution Logic (Fixed with Accurate Assignment)
 
 function generateSubstitutions() {
   const today = new Date().toISOString().split("T")[0];
@@ -357,98 +357,87 @@ function generateSubstitutions() {
       schedule.push({ ...entry, key });
 
       const uid = entry.teacherUID;
-      if (entry.day === "Monday") {
-        busyTeachers.add(uid + "-" + entry.time);
-      }
+      const slotKey = uid + "-" + entry.day + "-" + entry.time;
+      busyTeachers.add(slotKey);
     });
 
     const substitutions = [];
     const alreadyAssigned = new Set();
 
-    const todaysSchedule = schedule.filter(e => absentTeachers[e.teacherUID] && e.day === "Monday");
+    const todaysSchedule = schedule.filter(e => absentTeachers[e.teacherUID]);
 
     todaysSchedule.forEach(entry => {
       const { teacherUID, day, time, class: cls, subject } = entry;
       console.log("\n🔍 Looking for sub for", teacherList[teacherUID].name, "Class", cls, "Subject", subject);
 
       let substitute = null;
-
-      // 1. Same subject + regular
       const candidates = Object.values(teacherList);
+
+      // Try same subject regular
       for (const t of candidates) {
         const slotKey = `${t.uid}-${day}-${time}`;
         const isBusy = busyTeachers.has(slotKey);
         const isUsed = alreadyAssigned.has(slotKey);
         const subjectMatch = t.subject === subject;
-        const isValid = !isBusy && !isUsed && t.role === "regular" && subjectMatch && t.uid !== teacherUID;
 
         console.log(`🔄 Check (same subject) ${t.name} (${t.uid}) → busy: ${isBusy}, used: ${isUsed}, subjectMatch: ${subjectMatch}, role: ${t.role}`);
 
-        if (isValid) {
-          console.log(`✅ Assigned (same subject): ${t.name}`);
+        if (!isBusy && !isUsed && t.role === "regular" && subjectMatch && t.uid !== teacherUID) {
           substitute = t;
+          console.log(`✅ Assigned (same subject): ${t.name}`);
           break;
-        } else {
-          console.log(`❌ Not assigning ${t.name} → Conditions:`, {
-            isBusy,
-            isUsed,
-            role: t.role,
-            subject: t.subject,
-            expectedSubject: subject,
-            uid: t.uid
-          });
         }
       }
 
-      // 2. Any available regular
+      // Try any regular
       if (!substitute) {
         for (const t of candidates) {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(slotKey);
           const isUsed = alreadyAssigned.has(slotKey);
-          const isValid = !isBusy && !isUsed && t.role === "regular" && t.uid !== teacherUID;
 
-          if (isValid) {
-            console.log(`✅ Assigned (any regular): ${t.name}`);
+          if (!isBusy && !isUsed && t.role === "regular" && t.uid !== teacherUID) {
             substitute = t;
+            console.log(`✅ Assigned (any subject): ${t.name}`);
             break;
           }
         }
       }
 
-      // 3. Wildcard fallback
+      // Try wildcard
       if (!substitute) {
         for (const t of candidates) {
           const slotKey = `${t.uid}-${day}-${time}`;
           const isBusy = busyTeachers.has(slotKey);
           const isUsed = alreadyAssigned.has(slotKey);
-          const isValid = !isBusy && !isUsed && t.role === "wildcard" && t.uid !== teacherUID;
 
-          if (isValid) {
+          if (!isBusy && !isUsed && t.role === "wildcard" && t.uid !== teacherUID) {
+            substitute = t;
             console.log(`✅ Assigned (wildcard): ${t.name}`);
-            substitute = t;
             break;
           }
         }
       }
-
-      const subName = substitute ? substitute.name : "❌ No Available Sub";
 
       if (substitute) {
-        const slotKey = `${substitute.uid}-${day}-${time}`;
-        alreadyAssigned.add(slotKey);
+        const subSlot = `${substitute.uid}-${day}-${time}`;
+        alreadyAssigned.add(subSlot);
+        substitutions.push({
+          absent_teacher: teacherList[teacherUID].name,
+          class: cls,
+          substitute_teacher: substitute.name
+        });
+      } else {
+        substitutions.push({
+          absent_teacher: teacherList[teacherUID].name,
+          class: cls,
+          substitute_teacher: "❌ No Available Sub"
+        });
       }
-
-      substitutions.push({
-        absent_teacher: teacherList[teacherUID].name,
-        class: cls,
-        substitute_teacher: subName
-      });
     });
 
     console.log("\n📦 Final Substitutions:", substitutions);
 
-    // Store to Firebase
     const updates = {};
     substitutions.forEach((s, i) => {
       updates[`substitutions/${i}`] = s;
