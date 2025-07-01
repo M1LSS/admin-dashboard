@@ -99,13 +99,15 @@
     <div id="timetable" class="tab-content">
   <h2>Class Timetable</h2>
   <select id="timetableDaySelect">
-    <option value="Monday">Monday</option>
-    <option value="Tuesday">Tuesday</option>
-    <option value="Wednesday">Wednesday</option>
-    <option value="Thursday">Thursday</option>
-    <option value="Friday">Friday</option>
-  </select>
-      <button onclick="renderTimetable()">Generate Timetable</button>
+  <option value="" disabled selected>Select a day</option>
+  <option value="Monday">Monday</option>
+  <option value="Tuesday">Tuesday</option>
+  <option value="Wednesday">Wednesday</option>
+  <option value="Thursday">Thursday</option>
+  <option value="Friday">Friday</option>
+</select>
+<button onclick="renderTimetable()">Generate Timetable</button>
+
   <table id="timetableTable" border="1" style="width:100%; margin-top: 1rem; text-align: center;">
     <thead id="timetableHead"></thead>
     <tbody id="timetableBody"></tbody>
