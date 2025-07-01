@@ -6,6 +6,12 @@
 window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
+  fetchSummary();
+  setInterval(fetchSummary, 30000);
+  loadTeachers();
+  loadAttendance();
+  loadSubstitutions();
+  loadSchedule();
   populateTeacherDropdown();
   document.getElementById("addScheduleForm").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -58,13 +64,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  fetchSummary();
-  setInterval(fetchSummary, 30000);
-
-  loadTeachers();
-  loadAttendance();
-  loadSubstitutions();
-  loadSchedule();
 
  document.getElementById("addTeacherForm").addEventListener("submit", e => {
   e.preventDefault();
