@@ -231,6 +231,17 @@ function populateTeacherDropdown() {
   });
 }
 
+document.getElementById("scheduleTeacherSelect").addEventListener("change", function () {
+  const selectedUID = this.value;
+  database.ref("teachers/" + selectedUID).once("value", snapshot => {
+    const teacher = snapshot.val();
+    if (teacher?.subject) {
+      document.getElementById("scheduleSubject").value = teacher.subject;
+    }
+  });
+});
+
+
 
 function toggleEditSchedule(key, button) {
   const fields = ["teacher", "day", "time", "class", "subject"].map(id => document.getElementById(`${id}-${key}`));
