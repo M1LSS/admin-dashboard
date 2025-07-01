@@ -67,26 +67,26 @@ window.addEventListener("DOMContentLoaded", () => {
   loadSchedule();
 
   document.getElementById("addTeacherForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const uid = document.getElementById("newUID").value.trim();
-    const name = document.getElementById("newName").value.trim();
-    const subject = document.getElementById("newSubject").value.trim();
-const role = document.getElementById("newRole").value.trim();
+  e.preventDefault();
+  const uid = document.getElementById("newUID").value.trim();
+  const name = document.getElementById("newName").value.trim();
+  const subject = document.getElementById("newSubject").value.trim();
+  const role = document.getElementById("newRole").value.trim();
 
-if (!uid || !name || !subject || !role) {
-  alert("Please fill in all fields.");
-  return;
-}
+  if (!uid || !name || !subject || !role) {
+    alert("Please fill in all fields.");
+    return;
+  }
 
-const data = { name, subject, role };
+  const data = { name, subject, role };
 
-    database.ref("teachers/" + uid).set(data).then(() => {
-      alert("✅ Teacher added!");
-      e.target.reset();
-      loadTeachers();
-    });
+  database.ref("teachers/" + uid).set(data).then(() => {
+    alert("✅ Teacher added!");
+    e.target.reset();
+    loadTeachers();
   });
 });
+
 
 function showToast(message = "Summary updated") {
   const toast = document.getElementById("toast");
@@ -129,22 +129,22 @@ function loadTeachers() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-  <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
-  <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
-  <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
-  <td><input type="text" id="role-${uid}" value="${teacher.role || ""}" disabled></td>
-  <td>
-    <button onclick="toggleEdit('${uid}', this)">Edit</button>
-    <button onclick="deleteTeacher('${uid}')">Delete</button>
-  </td>`;
-
+        <td><input type="text" id="uid-${uid}" value="${uid}" disabled></td>
+        <td><input type="text" id="name-${uid}" value="${teacher.name || ""}" disabled></td>
+        <td><input type="text" id="subject-${uid}" value="${teacher.subject || ""}" disabled></td>
+        <td><input type="text" id="role-${uid}" value="${teacher.role || ""}" disabled></td>
+        <td>
+          <button onclick="toggleEdit('${uid}', this)">Edit</button>
+          <button onclick="deleteTeacher('${uid}')">Delete</button>
+        </td>`;
       tableBody.appendChild(row);
     });
   });
 }
 
+
 function toggleEdit(uid, button) {
- const inputs = ["uid", "name", "subject", "role"].map(id => document.getElementById(`${id}-${uid}`));
+  const inputs = ["uid", "name", "subject", "role"].map(id => document.getElementById(`${id}-${uid}`));
   const isDisabled = inputs[0].disabled;
 
   if (isDisabled) {
@@ -152,12 +152,11 @@ function toggleEdit(uid, button) {
     button.textContent = "Save";
   } else {
     const [uidInput, nameInput, subjectInput, roleInput] = inputs;
-const updatedData = {
-  name: nameInput.value.trim(),
-  subject: subjectInput.value.trim(),
-  role: roleInput.value.trim()
-};
-
+    const newUid = uidInput.value.trim();
+    const updatedData = {
+      name: nameInput.value.trim(),
+      subject: subjectInput.value.trim(),
+      role: roleInput.value.trim()
     };
 
     if (newUid !== uid) {
