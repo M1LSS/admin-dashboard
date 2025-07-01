@@ -11,19 +11,21 @@ function fetchSummary() {
 
     snapshot.forEach(child => {
       const data = child.val();
-      if (!data.status) return;
-      if (data.status === "present") present++;
-      else if (data.status === "absent") absent++;
-      else if (data.status === "late") late++;
+      const status = data.status;
+
+      if (status === "present") present++;
+      else if (status === "absent") absent++;
+      else if (status === "late") late++;
     });
 
     document.getElementById("present-count").innerText = present;
     document.getElementById("absent-count").innerText = absent;
     document.getElementById("late-count").innerText = late;
 
-    showToast();
+    showToast("📊 Summary updated.");
   });
 }
+
 
 function showToast(message = "Summary updated") {
   const toast = document.getElementById("toast");
