@@ -389,47 +389,31 @@ function generateSubstitutions() {
 
       console.log(`🔍 Looking for sub for ${teacherList[teacherUID]?.name || teacherUID}, Class ${cls}, Subject ${subject}`);
 
-      // Step 1: Regular teacher, same subject
-      for (const t of candidates) {
-        const slotKey = `${t.uid}-${day}-${time}`;
-        const isBusy = busyTeachers.has(t.uid);
-        const isUsed = alreadyAssigned.includes(slotKey);
-        const subjectMatch = t.subject === subject;
+      // Step 1: Same subject & free
+substitute = candidates.find(t =>
+  !busyTeachers.has(t.uid) &&
+  !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+  t.role === "regular" &&
+  t.subject === subject
+);
 
-        if (!isBusy && !isUsed && t.role === "regular" && subjectMatch) {
-          console.log(`✅ Assigned (same subject): ${t.name}`);
-          substitute = t;
-          break;
-        }
-      }
+// Step 2: Any subject & free
+if (!substitute) {
+  substitute = candidates.find(t =>
+    !busyTeachers.has(t.uid) &&
+    !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+    t.role === "regular"
+  );
+}
 
-      // Step 2: Regular teacher, any subject
-      if (!substitute) {
-        for (const t of candidates) {
-          const slotKey = `${t.uid}-${day}-${time}`;
-          const isBusy = busyTeachers.has(t.uid);
-          const isUsed = alreadyAssigned.includes(slotKey);
-          if (!isBusy && !isUsed && t.role === "regular") {
-            console.log(`✅ Assigned (any subject): ${t.name}`);
-            substitute = t;
-            break;
-          }
-        }
-      }
-
-      // Step 3: Wildcard teacher
-      if (!substitute) {
-        for (const t of candidates) {
-          const slotKey = `${t.uid}-${day}-${time}`;
-          const isBusy = busyTeachers.has(t.uid);
-          const isUsed = alreadyAssigned.includes(slotKey);
-          if (!isBusy && !isUsed && t.role === "wildcard") {
-            console.log(`✅ Assigned (wildcard): ${t.name}`);
-            substitute = t;
-            break;
-          }
-        }
-      }
+// Step 3: Wildcard & free
+if (!substitute) {
+  substitute = candidates.find(t =>
+    !busyTeachers.has(t.uid) &&
+    !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
+    t.role === "wildcard"
+  );
+}
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
       if (substitute) {
