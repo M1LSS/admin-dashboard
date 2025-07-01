@@ -143,30 +143,41 @@ function deleteTeacher(uid) {
   }
 }
 
-function loadAttendance() {
-  const date = document.getElementById("dateFilter").value || new Date().toISOString().split("T")[0];
-  const tbody = document.getElementById("attendanceTable");
+function loadSchedule() {
+  const tbody = document.getElementById("scheduleTableBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
-  database.ref("attendance/" + date).once("value", snapshot => {
+  database.ref("schedule").once("value", snapshot => {
+    const entries = [];
     snapshot.forEach(child => {
-      const uid = child.key;
-      const data = child.val();
-      if (!data.status) return;
+      const entry = child.val();
+      entries.push(entry);
+    });
 
-      database.ref("teachers/" + uid + "/name").once("value", snap => {
-        const name = snap.val() || uid;
+    // Fetch all teachers once to avoid repeated queries
+    database.ref("teachers").once("value", teacherSnap => {
+      const teachers = teacherSnap.val() || {};
+
+      entries.forEach(entry => {
+        const teacher = teachers[entry.teacher] || {};
+        const teacherName = teacher.name || entry.teacher;
+        const subject = teacher.subject || "-";
+
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${name}</td>
-          <td>${data.status}</td>
-          <td>${data.punch_in || '-'}</td>
-          <td>${data.punch_out || '-'}</td>`;
+          <td>${teacherName}</td>
+          <td>${entry.day || "-"}</td>
+          <td>${entry.time || "-"}</td>
+          <td>${entry.class || "-"}</td>
+          <td>${subject}</td>
+        `;
         tbody.appendChild(row);
       });
     });
   });
 }
+
 
 function loadSubstitutions() {
   const tbody = document.getElementById("substitutionTableBody");
