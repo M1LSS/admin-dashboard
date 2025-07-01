@@ -32,13 +32,7 @@ function showToast(message = "Summary updated") {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 3000);
 }
-
-// Run after DOM is ready
-window.addEventListener("DOMContentLoaded", () => {
-  const buttons = document.querySelectorAll(".tab-btn");
-  const tabs = document.querySelectorAll(".tab-content");
-
-  fetchSummary();
+fetchSummary();
   setInterval(fetchSummary, 30000);
 
   loadTeachers();
@@ -46,6 +40,10 @@ window.addEventListener("DOMContentLoaded", () => {
   loadSubstitutions();
   loadSchedule();
   populateTeacherDropdown();
+// Run after DOM is ready
+window.addEventListener("DOMContentLoaded", () => {
+  const buttons = document.querySelectorAll(".tab-btn");
+  const tabs = document.querySelectorAll(".tab-content");
 
   // Tab navigation
   buttons.forEach(btn => {
@@ -302,6 +300,7 @@ function deleteSchedule(key) {
   if (confirm("Delete this schedule?")) {
     database.ref("schedule/" + key).remove().then(loadSchedule);
   }
+  });
 }
 });
 }
