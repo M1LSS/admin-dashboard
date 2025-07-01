@@ -326,7 +326,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toISOString().split("T")[0];
-  const dayName = new Date().toLocaleString("en-US", { weekday: "long" });
+  const dayName = "Monday";
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
