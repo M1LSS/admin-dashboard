@@ -66,8 +66,9 @@ window.addEventListener("DOMContentLoaded", () => {
   loadSubstitutions();
   loadSchedule();
 
-  document.getElementById("addTeacherForm").addEventListener("submit", e => {
+ document.getElementById("addTeacherForm").addEventListener("submit", e => {
   e.preventDefault();
+
   const uid = document.getElementById("newUID").value.trim();
   const name = document.getElementById("newName").value.trim();
   const subject = document.getElementById("newSubject").value.trim();
