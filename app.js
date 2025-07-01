@@ -214,6 +214,7 @@ function loadSchedule() {
   });
 }
 
+
 function populateTeacherDropdown() {
   const select = document.getElementById("teacherSelect");
   if (!select) return;
