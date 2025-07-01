@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Teacher Attendance Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <div class="nav">
+    <h1>📊 Smart Teacher Attendance Dashboard</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="teachers">Teachers</button>
+      <button class="tab-btn" data-tab="schedule">Schedule</button>
+      <button class="tab-btn" data-tab="attendance">Attendance</button>
+      <button class="tab-btn" data-tab="substitution">Substitution</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="overview" class="tab-content active">
+      <h2>Today’s Summary</h2>
+      <button onclick="fetchSummary()" class="refresh-btn">🔄 Refresh</button>
+      <div class="summary-box-container">
+        <div class="summary-card"><h4>✅ Present</h4><p id="present-count">--</p></div>
+        <div class="summary-card"><h4>❌ Absent</h4><p id="absent-count">--</p></div>
+        <div class="summary-card"><h4>⏰ Late</h4><p id="late-count">--</p></div>
+      </div>
+    </div>
+
+    <div id="teachers" class="tab-content"><h2>Teachers Section</h2></div>
+
+    <div id="schedule" class="tab-content">
+      <h2>Teacher Schedule</h2>
+      <form id="addScheduleForm">
+        <select id="scheduleTeacherSelect" required>
+          <option disabled selected value="">Select Teacher</option>
+        </select>
+        <select id="scheduleDay" required>
+          <option disabled selected value="">Select Day</option>
+          <option value="Monday">Monday</option>
+          <option value="Tuesday">Tuesday</option>
+          <option value="Wednesday">Wednesday</option>
+          <option value="Thursday">Thursday</option>
+          <option value="Friday">Friday</option>
+        </select>
+        <input type="time" id="scheduleStartTime" required />
+        <input type="time" id="scheduleEndTime" required />
+        <input type="text" id="scheduleClass" placeholder="Class (e.g. 5A)" required />
+        <input type="text" id="scheduleSubject" placeholder="Subject" required />
+        <button type="submit">Add Schedule</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>Teacher</th>
+            <th>Day</th>
+            <th>Time</th>
+            <th>Class</th>
+            <th>Subject</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="attendance" class="tab-content"><h2>Attendance Section</h2></div>
+    <div id="substitution" class="tab-content"><h2>Substitution Section</h2></div>
+  </div>
+
+  <div id="toast" class="toast">Summary updated</div>
+</body>
+</html>
