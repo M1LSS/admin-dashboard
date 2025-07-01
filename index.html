@@ -44,13 +44,19 @@
     <div id="teachers" class="tab-content">
       <h2>Add Teacher</h2>
       <form id="addTeacherForm">
-        <input type="text" id="newUID" placeholder="UID" required />
-        <input type="text" id="newName" placeholder="Name" required />
-        <input type="text" id="newSubject" placeholder="Subject" required />
-        <input type="text" id="newClass" placeholder="Class" required />
-        <input type="text" id="newPhone" placeholder="Phone" required />
-        <button type="submit">Add Teacher</button>
-      </form>
+  <input type="text" id="newUID" placeholder="UID" required />
+  <input type="text" id="newName" placeholder="Name" required />
+  <input type="text" id="newSubject" placeholder="Subject" required />
+
+  <select id="newRole" required>
+    <option value="" disabled selected>Select Role</option>
+    <option value="regular">Regular</option>
+    <option value="wildcard">Wildcard</option>
+  </select>
+
+  <button type="submit">Add Teacher</button>
+</form>
+
 
       <h2>Manage Teachers</h2>
       <table id="teachersTable">
