@@ -192,16 +192,28 @@ function loadSchedule() {
   database.ref("schedule").once("value", snapshot => {
     snapshot.forEach(child => {
       const entry = child.val();
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${entry.teacher || "-"}</td>
-        <td>${entry.day || "-"}</td>
-        <td>${entry.time || "-"}</td>
-        <td>${entry.class || "-"}</td>`;
-      tbody.appendChild(row);
+      const teacherUID = entry.teacher;
+
+      // Fetch teacher details to get name and subject
+      database.ref("teachers/" + teacherUID).once("value", teacherSnap => {
+        const teacher = teacherSnap.val();
+        const teacherName = teacher?.name || teacherUID;
+        const subject = teacher?.subject || "-";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${teacherName}</td>
+          <td>${entry.day || "-"}</td>
+          <td>${entry.time || "-"}</td>
+          <td>${entry.class || "-"}</td>
+          <td>${subject}</td>
+        `;
+        tbody.appendChild(row);
+      });
     });
   });
 }
+
 function populateTeacherDropdown() {
   const select = document.getElementById("teacherSelect");
   if (!select) return;
