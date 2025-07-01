@@ -167,6 +167,47 @@ function deleteTeacher(uid) {
   }
 }
 
+function renderTimetable() {
+  const selectedDay = document.getElementById("timetableDaySelect").value;
+  const timetableHead = document.getElementById("timetableHead");
+  const timetableBody = document.getElementById("timetableBody");
+
+  database.ref("schedule").once("value", snapshot => {
+    const scheduleList = [];
+
+    snapshot.forEach(child => {
+      const data = child.val();
+      if (data.day === selectedDay) {
+        scheduleList.push(data);
+      }
+    });
+
+    const classes = [...new Set(scheduleList.map(item => item.class))].sort();
+    const times = [...new Set(scheduleList.map(item => item.time))].sort();
+
+    // Build table header
+    timetableHead.innerHTML = "";
+    const headerRow = document.createElement("tr");
+    headerRow.innerHTML = `<th>Time</th>` + classes.map(cls => `<th>${cls}</th>`).join("");
+    timetableHead.appendChild(headerRow);
+
+    // Build table body
+    timetableBody.innerHTML = "";
+    times.forEach(time => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${time}</td>`;
+
+      classes.forEach(cls => {
+        const match = scheduleList.find(item => item.time === time && item.class === cls);
+        row.innerHTML += `<td>${match ? match.teacher + "<br><small>(" + match.subject + ")</small>" : ""}</td>`;
+      });
+
+      timetableBody.appendChild(row);
+    });
+  });
+}
+
+
 function loadAttendance() {
   const dateInput = document.getElementById("dateFilter");
   const date = dateInput?.value || new Date().toISOString().split("T")[0];
