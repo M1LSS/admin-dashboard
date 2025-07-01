@@ -304,3 +304,4 @@ function deleteSchedule(key) {
   }
 }
 });
+}
