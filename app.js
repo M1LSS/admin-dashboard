@@ -22,6 +22,7 @@ window.addEventListener("DOMContentLoaded", () => {
   loadTeachers();
   loadAttendance();
   loadSubstitutions();
+  loadSchedule();
   
 });
 
@@ -223,4 +224,52 @@ function showToast(message = "Summary updated") {
   setTimeout(() => {
     toast.classList.remove("show");
   }, 2000); // Show for 2 seconds
+}
+
+const addTeacherForm = document.getElementById("addTeacherForm");
+  if (addTeacherForm) {
+    addTeacherForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const uid = document.getElementById("newUID").value.trim();
+      const name = document.getElementById("newName").value.trim();
+      const subject = document.getElementById("newSubject").value.trim();
+      const className = document.getElementById("newClass").value.trim();
+      const phone = document.getElementById("newPhone").value.trim();
+
+      if (!uid || !name || !subject || !className || !phone) return alert("All fields required");
+
+      firebase.database().ref("teachers/" + uid).set({
+        name,
+        subject,
+        class: className,
+        phone
+      }).then(() => {
+        alert("✅ Teacher added successfully!");
+        loadTeachers();
+        addTeacherForm.reset();
+      }).catch(console.error);
+    });
+  }
+});
+
+function loadSchedule() {
+  const table = document.getElementById("scheduleTableBody");
+  table.innerHTML = "";
+  firebase.database().ref("schedules").once("value", snapshot => {
+    snapshot.forEach(teacher => {
+      const uid = teacher.key;
+      const entries = teacher.val();
+      entries.forEach(item => {
+        const row = `
+          <tr>
+            <td>${uid}</td>
+            <td>${item.day}</td>
+            <td>${item.time}</td>
+            <td>${item.class}</td>
+            <td>${item.subject}</td>
+          </tr>`;
+        table.innerHTML += row;
+      });
+    });
+  });
 }
