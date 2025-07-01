@@ -169,9 +169,9 @@ function deleteTeacher(uid) {
 
 function renderTimetable() {
   const selectedDay = document.getElementById("timetableDaySelect").value;
-  const timetableHead = document.getElementById("timetableHead");
-  const timetableBody = document.getElementById("timetableBody");
-
+  if (!selectedDay) {
+    alert("Please select a day to generate the timetable.");
+    return;
   database.ref("schedule").once("value", snapshot => {
     const scheduleList = [];
 
