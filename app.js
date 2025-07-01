@@ -223,3 +223,43 @@ function loadTeacherDropdown() {
     });
   });
 }
+
+function addSchedule() {
+  const teacherUID = document.getElementById("scheduleTeacherSelect").value;
+  const day = document.getElementById("scheduleDaySelect").value;
+  const time = document.getElementById("scheduleTimeInput").value;
+  const className = document.getElementById("scheduleClassInput").value.trim();
+
+  if (!teacherUID || !day || !time || !className) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  // Get teacher's subject from the teacher database
+  database.ref("teachers/" + teacherUID).once("value", snapshot => {
+    if (!snapshot.exists()) {
+      alert("Teacher not found.");
+      return;
+    }
+
+    const teacher = snapshot.val();
+    const subject = teacher.subject || "";
+
+    const scheduleEntry = {
+      teacher: teacherUID,
+      day,
+      time,
+      class: className,
+      subject
+    };
+
+    // Push to Firebase under /schedule
+    database.ref("schedule").push(scheduleEntry).then(() => {
+      alert("✅ Schedule added!");
+      loadSchedule(); // Refresh table
+    }).catch(error => {
+      console.error("❌ Failed to add schedule:", error);
+      alert("❌ Error adding schedule.");
+    });
+  });
+}
