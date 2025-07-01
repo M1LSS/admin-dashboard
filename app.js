@@ -350,36 +350,43 @@ function generateSubstitutions() {
       }
     });
 
-    const substitutions = [];
+    const usedSlots = []; // Track assigned substitute/time
 
-    schedule.forEach(entry => {
-      const { teacherUID, day, time, class: cls, subject } = entry;
+schedule.forEach(entry => {
+  const { teacherUID, day, time, class: cls, subject } = entry;
 
-      // Filter teachers not scheduled at that time
-      const busyUIDs = schedule.filter(s => s.time === time && s.day === day)
-                               .map(s => s.teacherUID);
+  const alreadyAssigned = usedSlots.map(s => `${s.uid}-${s.day}-${s.time}`);
 
-      let substitute = Object.entries(teacherList).find(([uid, t]) => {
-        return !busyUIDs.includes(uid) &&
-               uid !== teacherUID &&
-               t.subject === subject &&
-               t.role === "regular";
-      });
+  // Find available regular substitute
+  let substitute = Object.entries(teacherList).find(([uid, t]) => {
+    const slotKey = `${uid}-${day}-${time}`;
+    return !alreadyAssigned.includes(slotKey) &&
+           uid !== teacherUID &&
+           t.subject === subject &&
+           t.role === "regular";
+  });
 
-      // Fallback: wildcard
-      if (!substitute) {
-        substitute = Object.entries(teacherList).find(([uid, t]) => {
-          return !busyUIDs.includes(uid) && t.role === "wildcard";
-        });
-      }
-
-      const subName = substitute ? substitute[1].name : "❌ No Available Sub";
-      substitutions.push({
-        absent_teacher: teacherList[teacherUID].name,
-        class: cls,
-        substitute_teacher: subName
-      });
+  // Fallback: wildcard
+  if (!substitute) {
+    substitute = Object.entries(teacherList).find(([uid, t]) => {
+      const slotKey = `${uid}-${day}-${time}`;
+      return !alreadyAssigned.includes(slotKey) &&
+             t.role === "wildcard";
     });
+  }
+
+  const subName = substitute ? substitute[1].name : "❌ No Available Sub";
+  if (substitute) {
+    usedSlots.push({ uid: substitute[0], day, time }); // reserve slot
+  }
+
+  substitutions.push({
+    absent_teacher: teacherList[teacherUID].name,
+    class: cls,
+    substitute_teacher: subName
+  });
+});
+
 
     // Store to Firebase
     const updates = {};
