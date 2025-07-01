@@ -7,6 +7,15 @@ window.addEventListener("DOMContentLoaded", () => {
   const buttons = document.querySelectorAll(".tab-btn");
   const tabs = document.querySelectorAll(".tab-content");
   populateTeacherDropdown();
+  document.getElementById("scheduleTeacherSelect").addEventListener("change", function () {
+  const selectedUID = this.value;
+  database.ref("teachers/" + selectedUID).once("value", snapshot => {
+    const teacher = snapshot.val();
+    if (teacher?.subject) {
+      document.getElementById("scheduleSubject").value = teacher.subject;
+    }
+  });
+});
   
   buttons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -230,16 +239,6 @@ function populateTeacherDropdown() {
     });
   });
 }
-
-document.getElementById("scheduleTeacherSelect").addEventListener("change", function () {
-  const selectedUID = this.value;
-  database.ref("teachers/" + selectedUID).once("value", snapshot => {
-    const teacher = snapshot.val();
-    if (teacher?.subject) {
-      document.getElementById("scheduleSubject").value = teacher.subject;
-    }
-  });
-});
 
 function toggleEditSchedule(key, button) {
   const fields = ["teacher", "day", "time", "class", "subject"].map(id => document.getElementById(`${id}-${key}`));
