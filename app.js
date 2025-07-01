@@ -3,8 +3,10 @@
 // Firebase is assumed to be initialized via firebase-config.js
 
 function fetchSummary() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString("en-CA"); // local time e.g. 2025-07-02
   const attendanceRef = database.ref("attendance/" + today);
+
+  console.log("📅 Reading attendance for:", today);
 
   attendanceRef.once("value", snapshot => {
     let present = 0, absent = 0, late = 0;
@@ -12,6 +14,7 @@ function fetchSummary() {
     snapshot.forEach(child => {
       const data = child.val();
       const status = data.status;
+      console.log("🔍", child.key, "→", status);
 
       if (status === "present") present++;
       else if (status === "absent") absent++;
@@ -25,7 +28,6 @@ function fetchSummary() {
     showToast("📊 Summary updated.");
   });
 }
-
 
 function showToast(message = "Summary updated") {
   const toast = document.getElementById("toast");
