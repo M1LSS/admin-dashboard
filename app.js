@@ -323,9 +323,7 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  console.log("🟢 generateSubstitutions() called");
   const today = new Date().toLocaleDateString("en-CA");
-  console.log("📆 Today:", today);
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
@@ -348,54 +346,64 @@ function generateSubstitutions() {
       teacherList[child.key] = child.val();
     });
 
-    const schedule = [];
+    const allSchedules = [];
     schedSnap.forEach(child => {
       const data = child.val();
-      if (absentTeachers[data.teacherUID]) {
-        schedule.push({ ...data, key: child.key });
-      }
+      allSchedules.push({ ...data, key: child.key });
     });
 
-    const usedSlots = []; // Track assigned substitute/time
+    const absentSchedules = allSchedules.filter(item => absentTeachers[item.teacherUID]);
+    const usedSlots = [];
     const substitutions = [];
 
-    schedule.forEach(entry => {
+    absentSchedules.forEach(entry => {
       const { teacherUID, day, time, class: cls, subject } = entry;
 
-      const alreadyAssigned = usedSlots.map(s => `${s.uid}-${s.day}-${s.time}`);
-
-      // 🔍 Build list of teachers already scheduled at this time
-      const scheduledAtSameTime = new Set();
-      schedSnap.forEach(child => {
-        const data = child.val();
-        if (data.day === day && data.time === time) {
-          scheduledAtSameTime.add(data.teacherUID);
+      // Find all teachers already scheduled at this time
+      const busyTeachers = new Set();
+      allSchedules.forEach(s => {
+        if (s.day === day && s.time === time) {
+          busyTeachers.add(s.teacherUID);
         }
       });
 
-      // ✅ Try finding a regular teacher with same subject
+      const alreadyAssigned = usedSlots.map(s => `${s.uid}-${day}-${time}`);
+
+      // Step 1: Free regular teacher with same subject
       let substitute = Object.entries(teacherList).find(([uid, t]) => {
         const slotKey = `${uid}-${day}-${time}`;
-        return !scheduledAtSameTime.has(uid) &&
+        return !busyTeachers.has(uid) &&
                !alreadyAssigned.includes(slotKey) &&
                uid !== teacherUID &&
                t.subject === subject &&
                t.role === "regular";
       });
 
-      // 🔁 Fallback to wildcard
+      // Step 2: Free regular teacher with any subject
       if (!substitute) {
         substitute = Object.entries(teacherList).find(([uid, t]) => {
           const slotKey = `${uid}-${day}-${time}`;
-          return !scheduledAtSameTime.has(uid) &&
+          return !busyTeachers.has(uid) &&
+                 !alreadyAssigned.includes(slotKey) &&
+                 uid !== teacherUID &&
+                 t.role === "regular";
+        });
+      }
+
+      // Step 3: Free wildcard teacher
+      if (!substitute) {
+        substitute = Object.entries(teacherList).find(([uid, t]) => {
+          const slotKey = `${uid}-${day}-${time}`;
+          return !busyTeachers.has(uid) &&
                  !alreadyAssigned.includes(slotKey) &&
                  t.role === "wildcard";
         });
       }
 
       const subName = substitute ? substitute[1].name : "❌ No Available Sub";
+
       if (substitute) {
-        usedSlots.push({ uid: substitute[0], day, time }); // Mark as assigned
+        usedSlots.push({ uid: substitute[0], day, time });
       }
 
       substitutions.push({
@@ -405,17 +413,13 @@ function generateSubstitutions() {
       });
     });
 
-    // Store to Firebase
-const updates = {};
-substitutions.forEach((s, i) => {
-  updates[`substitutions/${i}`] = s;
-});
+    // Save to Firebase
+    const updates = {};
+    substitutions.forEach((s, i) => {
+      updates[`substitutions/${i}`] = s;
+    });
 
-database.ref().update(updates).then(() => {
-  alert("✅ Substitutions generated!");
-  loadSubstitutions();
-});
-  });
-}
+    database.ref().update(updates).then(() => {
+
 
 
