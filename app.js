@@ -369,36 +369,37 @@ function generateSubstitutions() {
 
       const alreadyAssigned = usedSlots.map(s => `${s.uid}-${day}-${time}`);
 
-      // Step 1: Free regular teacher with same subject
-      let substitute = Object.entries(teacherList).find(([uid, t]) => {
-        const slotKey = `${uid}-${day}-${time}`;
-        return !busyTeachers.has(uid) &&
-               !alreadyAssigned.includes(slotKey) &&
-               uid !== teacherUID &&
-               t.subject === subject &&
-               t.role === "regular";
-      });
+      // 1. Regular teacher, same subject
+let substitute = Object.entries(teacherList).find(([uid, t]) => {
+  const slotKey = `${uid}-${day}-${time}`;
+  return !busyTeachers.has(uid) &&
+         !alreadyAssigned.includes(slotKey) &&
+         uid !== teacherUID &&
+         t.subject === subject &&
+         t.role === "regular";
+});
 
-      // Step 2: Free regular teacher with any subject
-      if (!substitute) {
-        substitute = Object.entries(teacherList).find(([uid, t]) => {
-          const slotKey = `${uid}-${day}-${time}`;
-          return !busyTeachers.has(uid) &&
-                 !alreadyAssigned.includes(slotKey) &&
-                 uid !== teacherUID &&
-                 t.role === "regular";
-        });
-      }
+// 2. Regular teacher, different subject
+if (!substitute) {
+  substitute = Object.entries(teacherList).find(([uid, t]) => {
+    const slotKey = `${uid}-${day}-${time}`;
+    return !busyTeachers.has(uid) &&
+           !alreadyAssigned.includes(slotKey) &&
+           uid !== teacherUID &&
+           t.role === "regular";
+  });
+}
 
-      // Step 3: Free wildcard teacher
-      if (!substitute) {
-        substitute = Object.entries(teacherList).find(([uid, t]) => {
-          const slotKey = `${uid}-${day}-${time}`;
-          return !busyTeachers.has(uid) &&
-                 !alreadyAssigned.includes(slotKey) &&
-                 t.role === "wildcard";
-        });
-      }
+// 3. Wildcard
+if (!substitute) {
+  substitute = Object.entries(teacherList).find(([uid, t]) => {
+    const slotKey = `${uid}-${day}-${time}`;
+    return !busyTeachers.has(uid) &&
+           !alreadyAssigned.includes(slotKey) &&
+           t.role === "wildcard";
+  });
+}
+
 
       const subName = substitute ? substitute[1].name : "❌ No Available Sub";
 
