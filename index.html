@@ -42,37 +42,36 @@
     </div>
 
     <div id="teachers" class="tab-content">
-      <h2>Add Teacher</h2>
-      <form id="addTeacherForm">
-  <input type="text" id="newUID" placeholder="UID" required />
-  <input type="text" id="newName" placeholder="Name" required />
-  <input type="text" id="newSubject" placeholder="Subject" required />
+  <h2>Add Teacher</h2>
+  <form id="addTeacherForm">
+    <input type="text" id="newUID" placeholder="UID" required />
+    <input type="text" id="newName" placeholder="Name" required />
+    <input type="text" id="newSubject" placeholder="Subject" required />
 
-  <select id="newRole" required>
-    <option value="" disabled selected>Select Role</option>
-    <option value="regular">Regular</option>
-    <option value="wildcard">Wildcard</option>
-  </select>
+    <select id="newRole" required>
+      <option value="" disabled selected>Select Role</option>
+      <option value="regular">Regular</option>
+      <option value="wildcard">Wildcard</option>
+    </select>
 
-  <button type="submit">Add Teacher</button>
-</form>
+    <button type="submit">Add Teacher</button>
+  </form>
 
+  <h2>Manage Teachers</h2>
+  <table id="teachersTable">
+    <thead>
+      <tr>
+        <th>UID</th>
+        <th>Name</th>
+        <th>Subject</th>
+        <th>Role</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="teacher-table-body"></tbody>
+  </table>
+</div>
 
-      <h2>Manage Teachers</h2>
-      <table id="teachersTable">
-  <thead>
-    <tr>
-      <th>UID</th>
-      <th>Name</th>
-      <th>Subject</th>
-      <th>Role</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-
-        <tbody id="teacher-table-body"></tbody>
-      </table>
-    </div>
 
     <div id="schedule" class="tab-content">
       <h2>Teacher Schedule</h2>
