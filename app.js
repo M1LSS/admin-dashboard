@@ -355,26 +355,38 @@ function generateSubstitutions() {
 
 schedule.forEach(entry => {
   const { teacherUID, day, time, class: cls, subject } = entry;
-
   const alreadyAssigned = usedSlots.map(s => ${s.uid}-${s.day}-${s.time});
+    // 🔧 Build a list of all teachers already scheduled at the same time
+const scheduledAtSameTime = new Set();
+schedSnap.forEach(child => {
+  const data = child.val();
+  if (data.day === day && data.time === time) {
+    scheduledAtSameTime.add(data.teacherUID);
+  }
+});
+
 
   // Find available regular substitute
   let substitute = Object.entries(teacherList).find(([uid, t]) => {
-    const slotKey = ${uid}-${day}-${time};
-    return !alreadyAssigned.includes(slotKey) &&
-           uid !== teacherUID &&
-           t.subject === subject &&
-           t.role === "regular";
-  });
+  const slotKey = `${uid}-${day}-${time}`;
+  return !scheduledAtSameTime.has(uid) &&
+         !alreadyAssigned.includes(slotKey) &&
+         uid !== teacherUID &&
+         t.subject === subject &&
+         t.role === "regular";
+});
+
 
   // Fallback: wildcard
-  if (!substitute) {
-    substitute = Object.entries(teacherList).find(([uid, t]) => {
-      const slotKey = ${uid}-${day}-${time};
-      return !alreadyAssigned.includes(slotKey) &&
-             t.role === "wildcard";
-    });
-  }
+ if (!substitute) {
+  substitute = Object.entries(teacherList).find(([uid, t]) => {
+    const slotKey = `${uid}-${day}-${time}`;
+    return !scheduledAtSameTime.has(uid) &&
+           !alreadyAssigned.includes(slotKey) &&
+           t.role === "wildcard";
+  });
+}
+
 
   const subName = substitute ? substitute[1].name : "❌ No Available Sub";
   if (substitute) {
