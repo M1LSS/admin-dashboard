@@ -71,15 +71,15 @@ window.addEventListener("DOMContentLoaded", () => {
     const uid = document.getElementById("newUID").value.trim();
     const name = document.getElementById("newName").value.trim();
     const subject = document.getElementById("newSubject").value.trim();
-    const className = document.getElementById("newClass").value.trim();
-    const phone = document.getElementById("newPhone").value.trim();
+const role = document.getElementById("newRole").value.trim();
 
-    if (!uid || !name || !subject || !className || !phone) {
-      alert("Please fill in all fields.");
-      return;
-    }
+if (!uid || !name || !subject || !role) {
+  alert("Please fill in all fields.");
+  return;
+}
 
-    const data = { name, subject, class: className, phone };
+const data = { name, subject, role };
+
     database.ref("teachers/" + uid).set(data).then(() => {
       alert("✅ Teacher added!");
       e.target.reset();
