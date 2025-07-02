@@ -6,6 +6,8 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="firebase-config.js"></script>
   <script defer src="app.js"></script>
 </head>
@@ -135,6 +137,7 @@
     <div id="substitution" class="tab-content">
       <h2>Substitution Assignments</h2>
       <button onclick="generateSubstitutions()">🔁 Auto Assign Substitutions</button>
+      <button onclick="exportSubstitutionToPDF()">📄 Export to PDF</button>
       <table>
         <thead>
           <tr>
