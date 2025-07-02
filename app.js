@@ -436,5 +436,21 @@ function generateSubstitutions() {
   });
 }
 
+function exportSubstitutionToPDF() {
+  const table = document.querySelector("#substitutionTableBody").parentElement;
+
+  html2canvas(table).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+
+    const imgData = canvas.toDataURL("image/png");
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save("Substitution_Report.pdf");
+  });
+}
 
 
