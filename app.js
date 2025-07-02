@@ -365,7 +365,6 @@ function generateSubstitutions() {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
       const { day, time, class: cls, subject } = entry;
 
-      // Detect busy teachers for this time
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
@@ -375,21 +374,17 @@ function generateSubstitutions() {
       });
 
       const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
-      let substitute = null;
-
       const alreadyUsedThisTime = new Set(substitutions
         .filter(sub => sub.day === day && sub.time === time)
         .map(sub => sub.substituteUID));
 
-      // STEP 1: Regular same subject
-      substitute = candidates.find(t =>
+      let substitute = candidates.find(t =>
         t.role === "regular" &&
         t.subject === subject &&
         !busyTeachers.has(t.uid) &&
         !alreadyUsedThisTime.has(t.uid)
       );
 
-      // STEP 2: Regular any subject
       if (!substitute) {
         substitute = candidates.find(t =>
           t.role === "regular" &&
@@ -398,7 +393,6 @@ function generateSubstitutions() {
         );
       }
 
-      // STEP 3: Wildcard
       if (!substitute) {
         substitute = candidates.find(t =>
           t.role === "wildcard" &&
@@ -430,11 +424,63 @@ function generateSubstitutions() {
     database.ref().update(updates).then(() => {
       alert("✅ Substitutions generated!");
       loadSubstitutions();
+      broadcastSubstitutionsToTelegram(substitutions); // 🔔 Broadcast to Telegram
     }).catch(err => {
       console.error("❌ Failed to update substitutions:", err);
     });
   });
 }
+function broadcastSubstitutionsToTelegram(substitutions) {
+  database.ref("teachers").once("value").then(snapshot => {
+    const chatIds = [];
+
+    snapshot.forEach(child => {
+      const teacher = child.val();
+      if (teacher.chat_id) {
+        chatIds.push(teacher.chat_id);
+      }
+    });
+
+    if (chatIds.length === 0) {
+      console.warn("⚠️ No chat_id found for any teacher.");
+      return;
+    }
+
+    let message = `📢 <b>Substitution Assignments for ${new Date().toLocaleDateString("en-GB")}</b>\n\n`;
+
+    substitutions.forEach((sub, index) => {
+      message += `🔸 <b>${index + 1}.</b>\n`;
+      message += `👤 <b>Absent:</b> ${sub.absent_teacher}\n`;
+      message += `🏫 <b>Class:</b> ${sub.class}\n`;
+      message += `📚 <b>Subject:</b> ${sub.subject}\n`;
+      message += `🕒 <b>Time:</b> ${sub.time}\n`;
+      message += `👥 <b>Substitute:</b> ${sub.substitute_teacher}\n\n`;
+    });
+
+    chatIds.forEach(chatId => sendTelegramMessage(chatId, message));
+  });
+}
+
+function sendTelegramMessage(chatId, message) {
+  const token = "7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI"; // 🔁 Replace with your actual bot token
+  const url = `https://api.telegram.org/bot7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI"/sendMessage`;
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: "HTML"
+    })
+  })
+    .then(res => res.json())
+    .then(data => console.log("📨 Telegram sent:", data))
+    .catch(err => console.error("❌ Telegram send error:", err));
+}
+
 
 function exportSubstitutionToPDF() {
   const table = document.querySelector("#substitutionTableBody").parentElement;
