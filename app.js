@@ -324,7 +324,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toLocaleDateString("en-CA");
-  const dayName = "Monday"; // You can auto-detect from today if needed
+  const dayName = "Monday"; // You can automate this later
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
@@ -342,7 +342,6 @@ function generateSubstitutions() {
         absentTeachers[child.key.toUpperCase()] = true;
       }
     });
-    console.log("🟨 Absent Teachers:", absentTeachers);
 
     const teacherList = {};
     teacherSnap.forEach(child => {
@@ -359,79 +358,73 @@ function generateSubstitutions() {
     const absentSchedules = allSchedules.filter(item =>
       absentTeachers[(item.teacherUID || "").toUpperCase()]
     );
-    console.log("📋 Absent Teacher Schedules:", absentSchedules);
 
-    const usedSlots = [];
     const substitutions = [];
 
     absentSchedules.forEach(entry => {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
       const { day, time, class: cls, subject } = entry;
 
-      // Detect busy teachers at this time
+      // Detect busy teachers for this time
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
-          if (s.teacherUID) {
-            busyTeachers.add(s.teacherUID.toUpperCase());
-          } else if (s.teacher) {
-            const match = Object.values(teacherList).find(t => t.name === s.teacher);
-            if (match) busyTeachers.add(match.uid);
-          }
+          const uid = (s.teacherUID || "").toUpperCase();
+          if (uid) busyTeachers.add(uid);
         }
       });
-
-      console.log(`⏰ Time: ${time}, Day: ${day}, Busy UIDs:`, Array.from(busyTeachers));
 
       const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
       let substitute = null;
 
-      console.log(`🔍 Looking for sub for ${teacherList[teacherUID]?.name || teacherUID}, Class ${cls}, Subject ${subject}`);
+      const alreadyUsedThisTime = new Set(substitutions
+        .filter(sub => sub.day === day && sub.time === time)
+        .map(sub => sub.substituteUID));
 
-      // Step 1: Regular teacher, same subject
+      // STEP 1: Regular same subject
       substitute = candidates.find(t =>
-        !busyTeachers.has(t.uid) &&
-        !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
         t.role === "regular" &&
-        t.subject === subject
+        t.subject === subject &&
+        !busyTeachers.has(t.uid) &&
+        !alreadyUsedThisTime.has(t.uid)
       );
 
-      // Step 2: Any regular teacher
+      // STEP 2: Regular any subject
       if (!substitute) {
         substitute = candidates.find(t =>
+          t.role === "regular" &&
           !busyTeachers.has(t.uid) &&
-          !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
-          t.role === "regular"
+          !alreadyUsedThisTime.has(t.uid)
         );
       }
 
-      // Step 3: Wildcard
+      // STEP 3: Wildcard
       if (!substitute) {
         substitute = candidates.find(t =>
+          t.role === "wildcard" &&
           !busyTeachers.has(t.uid) &&
-          !usedSlots.some(s => s.uid === t.uid && s.day === day && s.time === time) &&
-          t.role === "wildcard"
+          !alreadyUsedThisTime.has(t.uid)
         );
       }
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
-      if (substitute) {
-        usedSlots.push({ uid: substitute.uid, day, time });
-      }
 
       substitutions.push({
         absent_teacher: teacherList[teacherUID]?.name || teacherUID,
         class: cls,
-        substitute_teacher: subName
+        subject: subject,
+        time: time,
+        day: day,
+        substitute_teacher: subName,
+        substituteUID: substitute?.uid || "-"
       });
     });
-
-    console.log("📦 Final Substitutions:", substitutions);
 
     // Save to Firebase
     const updates = {};
     substitutions.forEach((s, i) => {
-      updates[`substitutions/${i}`] = s;
+      const { substituteUID, ...data } = s;
+      updates[`substitutions/${i}`] = data;
     });
 
     database.ref().update(updates).then(() => {
@@ -442,5 +435,6 @@ function generateSubstitutions() {
     });
   });
 }
+
 
 
