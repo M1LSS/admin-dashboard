@@ -242,7 +242,19 @@ function loadSubstitutions() {
   const tbody = document.getElementById("substitutionTableBody");
   tbody.innerHTML = "";
 
-  database.ref("substitutions").once("value", snapshot => {
+  const today = new Date().toLocaleDateString("en-CA");
+
+  database.ref("substitutions/" + today).once("value", snapshot => {
+    if (!snapshot.exists()) {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>`;
+      tbody.appendChild(row);
+      return;
+    }
+
     snapshot.forEach(child => {
       const sub = child.val();
       const row = document.createElement("tr");
@@ -254,6 +266,7 @@ function loadSubstitutions() {
     });
   });
 }
+
 
 function loadSchedule() {
   const tbody = document.getElementById("scheduleTableBody");
