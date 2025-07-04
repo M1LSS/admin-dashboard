@@ -443,28 +443,22 @@ function generateSubstitutions() {
     });
   });
 }
-
 function broadcastSubstitutionsToTelegram(substitutions) {
   substitutions.forEach(sub => {
-    const msg = `📢 *Substitution Alert*
-Absent: ${sub.absent_teacher}
-Class: ${sub.class}
-Subject: ${sub.subject}
-Time: ${sub.time}
-Substitute: ${sub.substitute_teacher}`;
-
-    sendTelegramMessageViaFunction(msg); // Secure method
+    const msg = `📢 *Substitution Alert*\nAbsent: ${sub.absent_teacher}\nClass: ${sub.class}\nSubject: ${sub.subject}\nTime: ${sub.time}\nSubstitute: ${sub.substitute_teacher}`;
+    sendTelegramMessageViaFunction(msg);
   });
 }
 
 function sendTelegramMessageViaFunction(message) {
   const sendFn = firebase.app().functions("asia-southeast1").httpsCallable("sendTelegramNotification");
   sendFn({ message }).then(res => {
-    console.log("✅ Message sent:", res.data);
+    console.log("✅ Telegram sent:", res.data);
   }).catch(err => {
-    console.error("❌ Cloud Function error:", err);
+    console.error("❌ Telegram cloud function error:", err);
   });
 }
+
 
 function exportSubstitutionToPDF() {
   const table = document.querySelector("#substitutionTableBody").parentElement;
