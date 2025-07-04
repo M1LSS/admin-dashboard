@@ -323,7 +323,7 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
   const dayName = "Monday"; // You can automate this later
 
   const attendanceRef = database.ref("attendance/" + today);
@@ -414,22 +414,23 @@ function generateSubstitutions() {
       });
     });
 
-    // Save to Firebase
+    // ✅ Save to Firebase under "substitutions/{today}"
     const updates = {};
     substitutions.forEach((s, i) => {
       const { substituteUID, ...data } = s;
-      updates[`substitutions/${i}`] = data;
+      updates[`substitutions/${today}/${i}`] = data;
     });
 
     database.ref().update(updates).then(() => {
       alert("✅ Substitutions generated!");
       loadSubstitutions();
-      broadcastSubstitutionsToTelegram(substitutions); // 🔔 Broadcast to Telegram
+      broadcastSubstitutionsToTelegram(substitutions); // 🔔
     }).catch(err => {
       console.error("❌ Failed to update substitutions:", err);
     });
   });
 }
+
 function broadcastSubstitutionsToTelegram(substitutions) {
   database.ref("teachers").once("value").then(snapshot => {
     const chatIds = [];
