@@ -446,25 +446,32 @@ function generateSubstitutions() {
 
 function broadcastSubstitutionsToTelegram(substitutions) {
   database.ref("teachers").once("value").then(snapshot => {
-    const teachers = [];
+    const teacherList = [];
     snapshot.forEach(child => {
       const teacher = child.val();
       if (teacher.chat_id) {
-        teachers.push(teacher.chat_id);
+        teacherList.push(teacher.chat_id);
       }
     });
 
-    substitutions.forEach(sub => {
-      const message = `
-📢 *Substitution Alert*
-Absent: ${sub.absent_teacher || "-"}
-Class: ${sub.class || "-"}
-Subject: ${sub.subject || "-"}
-Time: ${sub.time || "-"}
-Substitute: ${sub.substitute_teacher || "-"}`;
+    console.log("📣 Broadcasting to:", teacherList);
 
-      teachers.forEach(chatId => {
-        fetch(`https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage`, {
+    substitutions.forEach(sub => {
+      const absent = sub.absent_teacher || "N/A";
+      const className = sub.class || "N/A";
+      const subject = sub.subject || "N/A";
+      const time = sub.time || "N/A";
+      const subName = sub.substitute_teacher || "N/A";
+
+      const message = `📢 *Substitution Alert*
+Absent: ${absent}
+Class: ${className}
+Subject: ${subject}
+Time: ${time}
+Substitute: ${subName}`;
+
+      teacherList.forEach(chatId => {
+        fetch(`https://api.telegram.org/bot7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI>/sendMessage`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -474,11 +481,19 @@ Substitute: ${sub.substitute_teacher || "-"}`;
             text: message,
             parse_mode: "Markdown"
           })
-        }).catch(err => console.error("❌ Telegram send error:", err));
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("✅ Telegram sent to", chatId, data);
+        })
+        .catch(err => {
+          console.error("❌ Telegram send error:", err);
+        });
       });
     });
   });
 }
+
 
 
 function sendTelegramMessage(chatId, message) {
