@@ -337,7 +337,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = "Monday"; // You can automate this later
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" }); // Monday, etc.
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
@@ -437,28 +437,36 @@ function generateSubstitutions() {
     database.ref().update(updates).then(() => {
       alert("✅ Substitutions generated!");
       loadSubstitutions();
-      broadcastSubstitutionsToTelegram(substitutions); // 🔔
+      broadcastSubstitutionsToTelegram(today, substitutions);
     }).catch(err => {
       console.error("❌ Failed to update substitutions:", err);
     });
   });
 }
-function broadcastSubstitutionsToTelegram(substitutions) {
+
+function broadcastSubstitutionsToTelegram(date, substitutions) {
   substitutions.forEach(sub => {
-    const msg = `📢 *Substitution Alert*\nAbsent: ${sub.absent_teacher}\nClass: ${sub.class}\nSubject: ${sub.subject}\nTime: ${sub.time}\nSubstitute: ${sub.substitute_teacher}`;
+    const msg =
+      `📢 *Substitution Alert - ${date}*\n` +
+      `Absent: ${sub.absent_teacher}\n` +
+      `Class: ${sub.class}\n` +
+      `Subject: ${sub.subject}\n` +
+      `Time: ${sub.time}\n` +
+      `Substitute: ${sub.substitute_teacher}`;
     sendTelegramMessageViaFunction(msg);
   });
 }
 
 function sendTelegramMessageViaFunction(message) {
   const sendFn = firebase.app().functions("asia-southeast1").httpsCallable("sendTelegramNotification");
-  sendFn({ message }).then(res => {
-    console.log("✅ Telegram sent:", res.data);
-  }).catch(err => {
-    console.error("❌ Telegram cloud function error:", err);
-  });
+  sendFn({ message })
+    .then(res => {
+      console.log("✅ Telegram sent:", res.data);
+    })
+    .catch(err => {
+      console.error("❌ Telegram cloud function error:", err);
+    });
 }
-
 
 function exportSubstitutionToPDF() {
   const table = document.querySelector("#substitutionTableBody").parentElement;
