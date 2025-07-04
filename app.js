@@ -446,34 +446,40 @@ function generateSubstitutions() {
 
 function broadcastSubstitutionsToTelegram(substitutions) {
   database.ref("teachers").once("value").then(snapshot => {
-    const chatIds = [];
-
+    const teachers = [];
     snapshot.forEach(child => {
       const teacher = child.val();
       if (teacher.chat_id) {
-        chatIds.push(teacher.chat_id);
+        teachers.push(teacher.chat_id);
       }
     });
 
-    if (chatIds.length === 0) {
-      console.warn("⚠️ No chat_id found for any teacher.");
-      return;
-    }
+    substitutions.forEach(sub => {
+      const message = `
+📢 *Substitution Alert*
+Absent: ${sub.absent_teacher || "-"}
+Class: ${sub.class || "-"}
+Subject: ${sub.subject || "-"}
+Time: ${sub.time || "-"}
+Substitute: ${sub.substitute_teacher || "-"}`;
 
-    let message = `📢 <b>Substitution Assignments for ${new Date().toLocaleDateString("en-GB")}</b>\n\n`;
-
-    substitutions.forEach((sub, index) => {
-      message += `🔸 <b>${index + 1}.</b>\n`;
-      message += `👤 <b>Absent:</b> ${sub.absent_teacher}\n`;
-      message += `🏫 <b>Class:</b> ${sub.class}\n`;
-      message += `📚 <b>Subject:</b> ${sub.subject}\n`;
-      message += `🕒 <b>Time:</b> ${sub.time}\n`;
-      message += `👥 <b>Substitute:</b> ${sub.substitute_teacher}\n\n`;
+      teachers.forEach(chatId => {
+        fetch(`https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: "Markdown"
+          })
+        }).catch(err => console.error("❌ Telegram send error:", err));
+      });
     });
-
-    chatIds.forEach(chatId => sendTelegramMessage(chatId, message));
   });
 }
+
 
 function sendTelegramMessage(chatId, message) {
   const token = "7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI"; // 🔁 Replace with your actual bot token
