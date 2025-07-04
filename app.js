@@ -445,77 +445,26 @@ function generateSubstitutions() {
 }
 
 function broadcastSubstitutionsToTelegram(substitutions) {
-  database.ref("teachers").once("value").then(snapshot => {
-    const teacherList = [];
-    snapshot.forEach(child => {
-      const teacher = child.val();
-      if (teacher.chat_id) {
-        teacherList.push(teacher.chat_id);
-      }
-    });
+  substitutions.forEach(sub => {
+    const msg = `📢 *Substitution Alert*
+Absent: ${sub.absent_teacher}
+Class: ${sub.class}
+Subject: ${sub.subject}
+Time: ${sub.time}
+Substitute: ${sub.substitute_teacher}`;
 
-    console.log("📣 Broadcasting to:", teacherList);
-
-    substitutions.forEach(sub => {
-      const absent = sub.absent_teacher || "N/A";
-      const className = sub.class || "N/A";
-      const subject = sub.subject || "N/A";
-      const time = sub.time || "N/A";
-      const subName = sub.substitute_teacher || "N/A";
-
-      const message = `📢 *Substitution Alert*
-Absent: ${absent}
-Class: ${className}
-Subject: ${subject}
-Time: ${time}
-Substitute: ${subName}`;
-
-      teacherList.forEach(chatId => {
-        fetch(`https://api.telegram.org/bot7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI>/sendMessage`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            chat_id: chatId,
-            text: message,
-            parse_mode: "Markdown"
-          })
-        })
-        .then(res => res.json())
-        .then(data => {
-          console.log("✅ Telegram sent to", chatId, data);
-        })
-        .catch(err => {
-          console.error("❌ Telegram send error:", err);
-        });
-      });
-    });
+    sendTelegramMessageViaFunction(msg); // Secure method
   });
 }
 
-
-
-function sendTelegramMessage(chatId, message) {
-  const token = "7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI"; // 🔁 Replace with your actual bot token
-  const url = `https://api.telegram.org/bot7878961917:AAGkebCmPJg5Soz3d2AwUilBSh7yUtgDONI"/sendMessage`;
-
-  fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: message,
-      parse_mode: "HTML"
-    })
-  })
-    .then(res => res.json())
-    .then(data => console.log("📨 Telegram sent:", data))
-    .catch(err => console.error("❌ Telegram send error:", err));
+function sendTelegramMessageViaFunction(message) {
+  const sendFn = firebase.app().functions("asia-southeast1").httpsCallable("sendTelegramNotification");
+  sendFn({ message }).then(res => {
+    console.log("✅ Message sent:", res.data);
+  }).catch(err => {
+    console.error("❌ Cloud Function error:", err);
+  });
 }
-
 
 function exportSubstitutionToPDF() {
   const table = document.querySelector("#substitutionTableBody").parentElement;
