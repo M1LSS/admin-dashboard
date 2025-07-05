@@ -337,7 +337,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" }); // e.g. "Monday"
+  const dayName = "Monday"; // You can automate this later
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
