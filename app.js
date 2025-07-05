@@ -373,9 +373,12 @@ function generateSubstitutions() {
     });
 
     // Step 4: Extract schedules for absent teachers
-    const absentSchedules = allSchedules.filter(item =>
-      absentTeachers[(item.teacherUID || "").toUpperCase()]
-    );
+    const absentSchedules = allSchedules.filter(item => {
+  const uid = (item.teacherUID || "").toUpperCase();
+  const status = attSnap.child(uid).val()?.status;
+  return status === "absent";
+});
+
 
     // Step 5: Prepare substitution tracking
     const usedSlots = new Set(); // prevent assigning same teacher at same time
