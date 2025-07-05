@@ -259,9 +259,10 @@ function loadSubstitutions() {
       const sub = child.val();
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${sub.absent_teacher || "-"}</td>
-        <td>${sub.class || "-"}</td>
-        <td>${sub.substitute_teacher || "-"}</td>`;
+  <td>${sub.absent_teacher || "-"}</td>
+  <td>${sub.class || "-"}</td>
+  <td>${sub.time || "-"}</td>
+  <td>${sub.substitute_teacher || "-"}</td>`;
       tbody.appendChild(row);
     });
   });
