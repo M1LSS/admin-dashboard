@@ -387,43 +387,54 @@ function generateSubstitutions() {
 
     // Step 6: Assign substitution per entry
     absentSchedules.forEach(entry => {
-      const teacherUID = (entry.teacherUID || "").toUpperCase();
-      const { day, time, class: cls, subject } = entry;
+      const usedSlots = new Set();
+const subLoadMap = {};
+Object.values(teacherList).forEach(t => {
+  subLoadMap[t.uid] = 0;
+});
 
-      // Detect busy teachers at that day/time
-      const busyTeachers = new Set();
-      allSchedules.forEach(s => {
-        if (s.day === day && s.time === time) {
-          const uid = (s.teacherUID || "").toUpperCase();
-          if (uid) busyTeachers.add(uid);
-        }
-      });
+absentSchedules.forEach(entry => {
+  const teacherUID = (entry.teacherUID || "").toUpperCase();
+  const { day, time, class: cls, subject } = entry;
 
-      // Filter candidates: not absent, not busy, not same as absent teacher
-      const candidates = Object.values(teacherList).filter(t =>
-        t.role !== "absent" &&
-        t.uid !== teacherUID &&
-        !busyTeachers.has(t.uid)
-      );
+  const busyTeachers = new Set();
+  allSchedules.forEach(s => {
+    if (s.day === day && s.time === time) {
+      const uid = (s.teacherUID || "").toUpperCase();
+      if (uid) busyTeachers.add(uid);
+    }
+  });
 
-      // Sort candidates by current substitution load
-      candidates.sort((a, b) => (subLoadMap[a.uid] || 0) - (subLoadMap[b.uid] || 0));
+  const candidates = Object.values(teacherList).filter(t => {
+    const slotKey = `${t.uid}-${day}-${time}`;
+    return (
+      t.uid !== teacherUID &&
+      !busyTeachers.has(t.uid) &&
+      !usedSlots.has(slotKey)
+    );
+  });
 
-      const substitute = candidates[0]; // select least-loaded teacher
-      if (substitute) {
-        subLoadMap[substitute.uid] = (subLoadMap[substitute.uid] || 0) + 1;
-      }
+  // Sort by substitution load (least assigned first)
+  candidates.sort((a, b) => (subLoadMap[a.uid] || 0) - (subLoadMap[b.uid] || 0));
 
-      substitutions.push({
-        absent_teacher: teacherList[teacherUID]?.name || teacherUID,
-        class: cls,
-        subject: subject,
-        time: time,
-        day: day,
-        substitute_teacher: substitute ? substitute.name : "❌ No Available Sub",
-        substituteUID: substitute?.uid || "-"
-      });
-    });
+  const substitute = candidates[0];
+  if (substitute) {
+    const slotKey = `${substitute.uid}-${day}-${time}`;
+    usedSlots.add(slotKey);
+    subLoadMap[substitute.uid] = (subLoadMap[substitute.uid] || 0) + 1;
+  }
+
+  substitutions.push({
+    absent_teacher: teacherList[teacherUID]?.name || teacherUID,
+    class: cls,
+    subject: subject,
+    time: time,
+    day: day,
+    substitute_teacher: substitute ? substitute.name : "❌ No Available Sub",
+    substituteUID: substitute?.uid || "-"
+  });
+});
+
 
     // Step 7: Store to Firebase under substitutions/{today}/
     const updates = {};
