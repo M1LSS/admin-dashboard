@@ -264,7 +264,6 @@ function loadSubstitutions() {
   });
 }
 
-
 function loadSchedule() {
   const tbody = document.getElementById("scheduleTableBody");
   if (!tbody) return;
@@ -333,51 +332,55 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = "Monday"; // force match with timetable demo
+  const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-06"
+  const dayName = "Monday"; // force match with your timetable demo
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
   const teacherRef = database.ref("teachers");
+  const substitutionsRef = database.ref("substitutions/" + today);
 
-  Promise.all([
-    attendanceRef.once("value"),
-    scheduleRef.once("value"),
-    teacherRef.once("value")
-  ]).then(([attSnap, schedSnap, teacherSnap]) => {
-    // Step 1: Identify absent teachers
+  // Step 0: Remove old substitutions first
+  substitutionsRef.remove().then(() => {
+    // Step 1: Fetch attendance, schedule, teacher data
+    return Promise.all([
+      attendanceRef.once("value"),
+      scheduleRef.once("value"),
+      teacherRef.once("value")
+    ]);
+  }).then(([attSnap, schedSnap, teacherSnap]) => {
+    // Step 2: Identify absent teachers
     const absentTeachers = {};
     attSnap.forEach(child => {
       const status = child.val().status;
-      if (status === "absent" || status === "late") {
+      if (status === "absent") {
         absentTeachers[child.key.toUpperCase()] = true;
       }
     });
 
-    // Step 2: Collect teacher info
+    // Step 3: Collect teacher info
     const teacherList = {};
     teacherSnap.forEach(child => {
       const uid = child.key.toUpperCase();
       teacherList[uid] = { uid, ...child.val() };
     });
 
-    // Step 3: Collect all schedules
+    // Step 4: Collect all schedules
     const allSchedules = [];
     schedSnap.forEach(child => {
       const data = child.val();
       allSchedules.push({ ...data, key: child.key });
     });
 
-    // Step 4: Extract schedules for absent teachers
+    // Step 5: Filter schedules for absent teachers only
     const absentSchedules = allSchedules.filter(item => {
-  const uid = (item.teacherUID || "").toUpperCase();
-  const status = attSnap.child(uid).val()?.status;
-  return status === "absent";
-});
+      const uid = (item.teacherUID || "").toUpperCase();
+      const status = attSnap.child(uid).val()?.status;
+      return status === "absent";
+    });
 
-
-    // Step 5: Prepare substitution tracking
-    const usedSlots = new Set(); // prevent assigning same teacher at same time
+    // Step 6: Track substitution usage
+    const usedSlots = new Set();
     const subLoadMap = {};
     Object.values(teacherList).forEach(t => {
       subLoadMap[t.uid] = 0;
@@ -385,12 +388,11 @@ function generateSubstitutions() {
 
     const substitutions = [];
 
-    // Step 6: Assign substitutes
+    // Step 7: Assign substitutes
     absentSchedules.forEach(entry => {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
       const { day, time, class: cls, subject } = entry;
 
-      // Detect busy teachers at the same time
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
@@ -408,7 +410,6 @@ function generateSubstitutions() {
         );
       });
 
-      // Sort by lowest substitution load
       candidates.sort((a, b) => (subLoadMap[a.uid] || 0) - (subLoadMap[b.uid] || 0));
 
       const substitute = candidates[0];
@@ -429,24 +430,21 @@ function generateSubstitutions() {
       });
     });
 
-    // Step 7: Save to Firebase under substitutions/{today}
-    const substitutionsRef = database.ref(`substitutions/${today}`);
-substitutionsRef.remove().then(() => {
-  // continue with saving new substitutions after removal
-  const updates = {};
-  substitutions.forEach((s, i) => {
-    const { substituteUID, ...data } = s;
-    updates[`substitutions/${today}/${i}`] = data;
-  });
+    // Step 8: Write new substitutions to Firebase
+    const updates = {};
+    substitutions.forEach((s, i) => {
+      const { substituteUID, ...data } = s;
+      updates[`substitutions/${today}/${i}`] = data;
+    });
 
-  database.ref().update(updates).then(() => {
-    alert("✅ Substitutions refreshed!");
-    loadSubstitutions(); // 👈 Make sure this reloads from Firebase
+    return database.ref().update(updates).then(() => {
+      alert("✅ Substitutions generated!");
+      loadSubstitutions();
+    });
   }).catch(err => {
-    console.error("❌ Failed to update substitutions:", err);
+    console.error("❌ Substitution generation error:", err);
   });
-});
-
+}
 
 function broadcastSubstitutionsToTelegram(date, substitutions) {
   substitutions.forEach(sub => {
