@@ -438,9 +438,10 @@ function generateSubstitutions() {
     });
 
     return database.ref().update(updates).then(() => {
-      alert("✅ Substitutions generated!");
-      loadSubstitutions();
-    });
+  alert("✅ Substitutions generated!");
+  loadSubstitutions();
+  broadcastSubstitutionsToTelegram(today, substitutions); // 🔔 Add this line
+});
   }).catch(err => {
     console.error("❌ Substitution generation error:", err);
   });
