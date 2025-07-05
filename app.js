@@ -25,7 +25,7 @@ function fetchSummary() {
     document.getElementById("absent-count").innerText = absent;
     document.getElementById("late-count").innerText = late;
 
-    showToast("📊 Summary updated.");
+    //showToast("📊 Summary updated.");
   });
 }
 
