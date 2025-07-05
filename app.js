@@ -336,7 +336,7 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA"); // e.g. 2025-07-05
+  const today = new Date().toLocaleDateString("en-CA");
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   const attendanceRef = database.ref("attendance/" + today);
@@ -377,13 +377,20 @@ function generateSubstitutions() {
       absentTeachers[(item.teacherUID || "").toUpperCase()]
     );
 
+    // Step 5: Track usage to balance load
+    const subLoadMap = {};
+    Object.values(teacherList).forEach(t => {
+      subLoadMap[t.uid] = 0;
+    });
+
     const substitutions = [];
 
+    // Step 6: Assign substitution per entry
     absentSchedules.forEach(entry => {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
       const { day, time, class: cls, subject } = entry;
 
-      // Step 5: Find busy teachers at that day & time
+      // Detect busy teachers at that day/time
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
@@ -392,51 +399,33 @@ function generateSubstitutions() {
         }
       });
 
-      // Step 6: Track usage to balance load
-      // Count how many times each teacher is already assigned
-const subLoadMap = {};
-Object.values(teacherList).forEach(t => {
-  subLoadMap[t.uid] = 0;
-});
+      // Filter candidates: not absent, not busy, not same as absent teacher
+      const candidates = Object.values(teacherList).filter(t =>
+        t.role !== "absent" &&
+        t.uid !== teacherUID &&
+        !busyTeachers.has(t.uid)
+      );
 
-absentSchedules.forEach(entry => {
-  const teacherUID = (entry.teacherUID || "").toUpperCase();
-  const { day, time, class: cls, subject } = entry;
+      // Sort candidates by current substitution load
+      candidates.sort((a, b) => (subLoadMap[a.uid] || 0) - (subLoadMap[b.uid] || 0));
 
-  const busyTeachers = new Set();
-  allSchedules.forEach(s => {
-    if (s.day === day && s.time === time) {
-      const uid = (s.teacherUID || "").toUpperCase();
-      if (uid) busyTeachers.add(uid);
-    }
-  });
+      const substitute = candidates[0]; // select least-loaded teacher
+      if (substitute) {
+        subLoadMap[substitute.uid] = (subLoadMap[substitute.uid] || 0) + 1;
+      }
 
-  const candidates = Object.values(teacherList).filter(t =>
-    t.role !== "absent" &&
-    t.uid !== teacherUID &&
-    !busyTeachers.has(t.uid)
-  );
+      substitutions.push({
+        absent_teacher: teacherList[teacherUID]?.name || teacherUID,
+        class: cls,
+        subject: subject,
+        time: time,
+        day: day,
+        substitute_teacher: substitute ? substitute.name : "❌ No Available Sub",
+        substituteUID: substitute?.uid || "-"
+      });
+    });
 
-  // Sort candidates by current substitution load (ascending)
-  candidates.sort((a, b) => (subLoadMap[a.uid] || 0) - (subLoadMap[b.uid] || 0));
-
-  const substitute = candidates[0]; // take the one with least load
-  if (substitute) {
-    subLoadMap[substitute.uid] = (subLoadMap[substitute.uid] || 0) + 1;
-  }
-
-  substitutions.push({
-    absent_teacher: teacherList[teacherUID]?.name || teacherUID,
-    class: cls,
-    subject: subject,
-    time: time,
-    day: day,
-    substitute_teacher: substitute ? substitute.name : "❌ No Available Sub",
-    substituteUID: substitute?.uid || "-"
-  });
-});
-
-    // Step 11: Store to Firebase under substitutions/{today}/
+    // Step 7: Store to Firebase under substitutions/{today}/
     const updates = {};
     substitutions.forEach((s, i) => {
       const { substituteUID, ...data } = s;
@@ -452,8 +441,6 @@ absentSchedules.forEach(entry => {
     });
   });
 }
-
-
 
 function broadcastSubstitutionsToTelegram(date, substitutions) {
   substitutions.forEach(sub => {
