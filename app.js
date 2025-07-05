@@ -488,4 +488,3 @@ function exportSubstitutionToPDF() {
     pdf.save("Substitution_Report.pdf");
   });
 }
-
