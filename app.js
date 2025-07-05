@@ -239,18 +239,14 @@ function loadAttendance() {
 }
 
 function loadSubstitutions() {
+  const today = new Date().toLocaleDateString("en-CA");
   const tbody = document.getElementById("substitutionTableBody");
   tbody.innerHTML = "";
-
-  const today = new Date().toLocaleDateString("en-CA");
 
   database.ref("substitutions/" + today).once("value", snapshot => {
     if (!snapshot.exists()) {
       const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>`;
+      row.innerHTML = `<td colspan="4">No substitution data.</td>`;
       tbody.appendChild(row);
       return;
     }
@@ -259,14 +255,15 @@ function loadSubstitutions() {
       const sub = child.val();
       const row = document.createElement("tr");
       row.innerHTML = `
-  <td>${sub.absent_teacher || "-"}</td>
-  <td>${sub.class || "-"}</td>
-  <td>${sub.time || "-"}</td>
-  <td>${sub.substitute_teacher || "-"}</td>`;
+        <td>${sub.absent_teacher || "-"}</td>
+        <td>${sub.class || "-"}</td>
+        <td>${sub.time || "-"}</td>
+        <td>${sub.substitute_teacher || "-"}</td>`;
       tbody.appendChild(row);
     });
   });
 }
+
 
 
 function loadSchedule() {
@@ -434,21 +431,22 @@ function generateSubstitutions() {
     });
 
     // Step 7: Save to Firebase under substitutions/{today}
-    const updates = {};
-    substitutions.forEach((s, i) => {
-      const { substituteUID, ...data } = s;
-      updates[`substitutions/${today}/${i}`] = data;
-    });
-
-    database.ref().update(updates).then(() => {
-      alert("✅ Substitutions generated!");
-      loadSubstitutions();
-      broadcastSubstitutionsToTelegram(today, substitutions); // Optional: notify via Telegram
-    }).catch(err => {
-      console.error("❌ Failed to update substitutions:", err);
-    });
+    const substitutionsRef = database.ref(`substitutions/${today}`);
+substitutionsRef.remove().then(() => {
+  // continue with saving new substitutions after removal
+  const updates = {};
+  substitutions.forEach((s, i) => {
+    const { substituteUID, ...data } = s;
+    updates[`substitutions/${today}/${i}`] = data;
   });
-}
+
+  database.ref().update(updates).then(() => {
+    alert("✅ Substitutions refreshed!");
+    loadSubstitutions(); // 👈 Make sure this reloads from Firebase
+  }).catch(err => {
+    console.error("❌ Failed to update substitutions:", err);
+  });
+});
 
 
 function broadcastSubstitutionsToTelegram(date, substitutions) {
