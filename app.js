@@ -265,7 +265,6 @@ function loadSubstitutions() {
 }
 
 
-
 function loadSchedule() {
   const tbody = document.getElementById("scheduleTableBody");
   if (!tbody) return;
@@ -335,7 +334,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" }); // Monday, etc.
+  const dayName = "Monday"; // force match with timetable demo
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
