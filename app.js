@@ -337,7 +337,7 @@ function deleteSchedule(key) {
 
 function generateSubstitutions() {
   const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" }); // Monday, etc.
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" }); // e.g. "Monday"
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
@@ -373,6 +373,7 @@ function generateSubstitutions() {
     );
 
     const substitutions = [];
+    const subCount = {}; // Track number of times a teacher is substituted
 
     absentSchedules.forEach(entry => {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
@@ -386,35 +387,36 @@ function generateSubstitutions() {
         }
       });
 
-      const candidates = Object.values(teacherList).filter(t => t.uid !== teacherUID);
+      const candidates = Object.values(teacherList).filter(t => 
+        t.uid !== teacherUID &&
+        !busyTeachers.has(t.uid)
+      );
+
       const alreadyUsedThisTime = new Set(substitutions
         .filter(sub => sub.day === day && sub.time === time)
-        .map(sub => sub.substituteUID));
+        .map(sub => sub.substituteUID)
+      );
+
+      // Sort by how many times they’ve already been used (least used first)
+      candidates.sort((a, b) => (subCount[a.uid] || 0) - (subCount[b.uid] || 0));
 
       let substitute = candidates.find(t =>
         t.role === "regular" &&
-        t.subject === subject &&
-        !busyTeachers.has(t.uid) &&
         !alreadyUsedThisTime.has(t.uid)
       );
 
       if (!substitute) {
         substitute = candidates.find(t =>
-          t.role === "regular" &&
-          !busyTeachers.has(t.uid) &&
-          !alreadyUsedThisTime.has(t.uid)
-        );
-      }
-
-      if (!substitute) {
-        substitute = candidates.find(t =>
           t.role === "wildcard" &&
-          !busyTeachers.has(t.uid) &&
           !alreadyUsedThisTime.has(t.uid)
         );
       }
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
+
+      if (substitute) {
+        subCount[substitute.uid] = (subCount[substitute.uid] || 0) + 1;
+      }
 
       substitutions.push({
         absent_teacher: teacherList[teacherUID]?.name || teacherUID,
@@ -437,12 +439,13 @@ function generateSubstitutions() {
     database.ref().update(updates).then(() => {
       alert("✅ Substitutions generated!");
       loadSubstitutions();
-      broadcastSubstitutionsToTelegram(today, substitutions);
+      broadcastSubstitutionsToTelegram(today, substitutions); // Send message
     }).catch(err => {
       console.error("❌ Failed to update substitutions:", err);
     });
   });
 }
+
 
 function broadcastSubstitutionsToTelegram(date, substitutions) {
   substitutions.forEach(sub => {
