@@ -387,7 +387,7 @@ function generateSubstitutions() {
 
     // Step 6: Assign substitution per entry
     absentSchedules.forEach(entry => {
-      const usedSlots = new Set();
+     const usedSlots = new Set();
 const subLoadMap = {};
 Object.values(teacherList).forEach(t => {
   subLoadMap[t.uid] = 0;
@@ -434,6 +434,7 @@ absentSchedules.forEach(entry => {
     substituteUID: substitute?.uid || "-"
   });
 });
+
 
 
     // Step 7: Store to Firebase under substitutions/{today}/
