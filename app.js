@@ -487,4 +487,5 @@ function exportSubstitutionToPDF() {
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("Substitution_Report.pdf");
   });
+  
 }
