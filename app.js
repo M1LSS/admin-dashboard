@@ -336,8 +336,8 @@ function deleteSchedule(key) {
 }
 
 function generateSubstitutions() {
-  const today = new Date().toLocaleDateString("en-CA"); // e.g. "2025-07-05"
-  const dayName = "Monday"; // You can automate this later
+  const today = new Date().toLocaleDateString("en-CA"); // e.g. 2025-07-05
+  const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   const attendanceRef = database.ref("attendance/" + today);
   const scheduleRef = database.ref("schedule");
@@ -348,6 +348,8 @@ function generateSubstitutions() {
     scheduleRef.once("value"),
     teacherRef.once("value")
   ]).then(([attSnap, schedSnap, teacherSnap]) => {
+
+    // Step 1: Identify absent teachers
     const absentTeachers = {};
     attSnap.forEach(child => {
       const status = child.val().status;
@@ -356,29 +358,32 @@ function generateSubstitutions() {
       }
     });
 
+    // Step 2: Collect teacher info
     const teacherList = {};
     teacherSnap.forEach(child => {
       const uid = child.key.toUpperCase();
       teacherList[uid] = { uid, ...child.val() };
     });
 
+    // Step 3: Collect all schedules
     const allSchedules = [];
     schedSnap.forEach(child => {
       const data = child.val();
       allSchedules.push({ ...data, key: child.key });
     });
 
+    // Step 4: Extract only absent teacher classes
     const absentSchedules = allSchedules.filter(item =>
       absentTeachers[(item.teacherUID || "").toUpperCase()]
     );
 
     const substitutions = [];
-    const subCount = {}; // Track number of times a teacher is substituted
 
     absentSchedules.forEach(entry => {
       const teacherUID = (entry.teacherUID || "").toUpperCase();
       const { day, time, class: cls, subject } = entry;
 
+      // Step 5: Find busy teachers at that day & time
       const busyTeachers = new Set();
       allSchedules.forEach(s => {
         if (s.day === day && s.time === time) {
@@ -387,49 +392,53 @@ function generateSubstitutions() {
         }
       });
 
-      const candidates = Object.values(teacherList).filter(t => 
-        t.uid !== teacherUID &&
-        !busyTeachers.has(t.uid)
-      );
+      // Step 6: Track usage to balance load
+      const subCount = {};
+      Object.values(teacherList).forEach(t => {
+        subCount[t.uid] = 0;
+      });
+      substitutions.forEach(s => {
+        if (s.substituteUID && s.substituteUID !== "-") {
+          subCount[s.substituteUID] = (subCount[s.substituteUID] || 0) + 1;
+        }
+      });
 
+      // Step 7: Find candidates who are free and not used at same time
       const alreadyUsedThisTime = new Set(substitutions
         .filter(sub => sub.day === day && sub.time === time)
-        .map(sub => sub.substituteUID)
-      );
+        .map(sub => sub.substituteUID));
 
-      // Sort by how many times they’ve already been used (least used first)
-      candidates.sort((a, b) => (subCount[a.uid] || 0) - (subCount[b.uid] || 0));
-
-      let substitute = candidates.find(t =>
-        t.role === "regular" &&
+      let available = Object.values(teacherList).filter(t =>
+        t.uid !== teacherUID &&
+        !busyTeachers.has(t.uid) &&
         !alreadyUsedThisTime.has(t.uid)
       );
 
+      // Step 8: Sort available by fewest substitutions
+      available.sort((a, b) => (subCount[a.uid] || 0) - (subCount[b.uid] || 0));
+
+      // Step 9: Try to assign regular first
+      let substitute = available.find(t => t.role === "regular");
+
+      // Step 10: Fallback to wildcard
       if (!substitute) {
-        substitute = candidates.find(t =>
-          t.role === "wildcard" &&
-          !alreadyUsedThisTime.has(t.uid)
-        );
+        substitute = available.find(t => t.role === "wildcard");
       }
 
       const subName = substitute ? substitute.name : "❌ No Available Sub";
 
-      if (substitute) {
-        subCount[substitute.uid] = (subCount[substitute.uid] || 0) + 1;
-      }
-
       substitutions.push({
         absent_teacher: teacherList[teacherUID]?.name || teacherUID,
         class: cls,
-        subject: subject,
-        time: time,
-        day: day,
+        subject,
+        time,
+        day,
         substitute_teacher: subName,
         substituteUID: substitute?.uid || "-"
       });
     });
 
-    // ✅ Save to Firebase under "substitutions/{today}"
+    // Step 11: Store to Firebase under substitutions/{today}/
     const updates = {};
     substitutions.forEach((s, i) => {
       const { substituteUID, ...data } = s;
@@ -439,12 +448,13 @@ function generateSubstitutions() {
     database.ref().update(updates).then(() => {
       alert("✅ Substitutions generated!");
       loadSubstitutions();
-      broadcastSubstitutionsToTelegram(today, substitutions); // Send message
+      broadcastSubstitutionsToTelegram(today, substitutions);
     }).catch(err => {
       console.error("❌ Failed to update substitutions:", err);
     });
   });
 }
+
 
 
 function broadcastSubstitutionsToTelegram(date, substitutions) {
